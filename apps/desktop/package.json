@@ -1,0 +1,36 @@
+{
+  "name": "@fosswhisper/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@fosswhisper/shared": "workspace:*",
+    "@fosswhisper/ui": "workspace:*",
+    "electron-store": "^10.0.0",
+    "naive-ui": "^2.41.1",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitest/ui": "^3.0.8",
+    "@vue/test-utils": "^2.4.6",
+    "electron": "^35.0.2",
+    "electron-vite": "^3.1.0",
+    "happy-dom": "^17.1.7",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.8",
+    "vue-tsc": "^2.2.8"
+  }
+}

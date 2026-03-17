@@ -1,0 +1,15 @@
+{
+  "name": "fosswhisper",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "dev": "pnpm --filter @fosswhisper/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:run": "pnpm -r test:run",
+    "test:unit": "pnpm --filter @fosswhisper/shared test:run",
+    "test:integration": "pnpm --filter @fosswhisper/desktop test:run"
+  }
+}
