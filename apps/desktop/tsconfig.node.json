@@ -22,9 +22,6 @@
   ],
   "exclude": [
     "electron/__tests__/**",
-    "electron/main/audio/**",
-    "electron/main/output/**",
-    "electron/main/ytdlp/**",
     "electron/vitest.config.ts"
   ]
 }
