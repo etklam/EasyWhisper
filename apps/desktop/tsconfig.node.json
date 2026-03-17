@@ -1,10 +1,30 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "types": ["node"],
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared": ["../../packages/shared/src/index.ts"],
+      "@shared/*": ["../../packages/shared/src/*"]
+    }
   },
-  "include": ["electron/**/*.ts", "electron.vite.config.ts"]
+  "include": [
+    "electron/main/**/*.ts",
+    "electron/preload/**/*.ts",
+    "../../packages/shared/src/**/*.ts",
+    "electron.vite.config.ts"
+  ],
+  "exclude": [
+    "electron/__tests__/**",
+    "electron/main/audio/**",
+    "electron/main/output/**",
+    "electron/main/ytdlp/**",
+    "electron/vitest.config.ts"
+  ]
 }

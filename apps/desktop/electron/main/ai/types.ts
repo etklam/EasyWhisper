@@ -1,4 +1,15 @@
-// AI 类型定义
+import type {
+  AiCustomPrompts,
+  AiErrorResult,
+  AiProgressEvent,
+  AiRunPayload,
+  AiRunResult,
+  AiSkippedResult,
+  AiSuccessResult,
+  AiTaskType
+} from '@shared/types'
+
+export type { AiCustomPrompts, AiProgressEvent, AiRunPayload, AiRunResult, AiTaskType }
 
 export interface AiSettings {
   enabled: boolean
@@ -9,57 +20,47 @@ export interface AiSettings {
     summary: boolean
   }
   targetLang: string
-  customPrompts?: {
-    correct?: string
-    translate?: string
-    summary?: string
-  }
+  customPrompts?: AiCustomPrompts
 }
 
-export interface AiTask {
+export interface AiTask extends AiRunPayload {
   id: string
-  text: string
-  taskType: 'correct' | 'translate' | 'summary'
-  targetLang?: string
-  batchMode?: boolean
-  chunkSize?: number
-  timeout?: number
-  onProgress?: (progress: number | AiProgress) => void
-  onResult?: (result: AiComplete | AiError) => void
+  onProgress?: (progress: AiProgressEvent) => void
+  onResult?: (result: AiRunResult) => void
 }
 
-export interface AiProgress {
-  taskId: string
-  taskType: 'correct' | 'translate' | 'summary'
-  progress: number
-  currentChunk?: number
-  totalChunks?: number
-  tokensUsed?: number
-}
-
-export interface AiComplete {
-  taskId: string
-  result: string
-  tokensUsed?: number
-  durationMs: number
-}
-
-export interface AiError {
-  taskId: string
-  taskType: 'correct' | 'translate' | 'summary'
-  error: string
-  detail?: string
-}
+export type AiComplete = AiSuccessResult
+export type AiError = AiErrorResult
+export type AiSkipped = AiSkippedResult
 
 export interface PipelineOptions {
+  concurrency?: number
+  chunkSize?: number
+  timeout?: number
+  contextWindow?: number
+  outputTokenBudget?: number
+}
+
+export interface ResolvedPipelineOptions {
   concurrency: number
   chunkSize: number
   timeout: number
   contextWindow: number
+  outputTokenBudget: number
 }
 
 export interface OllamaModel {
   name: string
   modified_at: string
   size: number
+}
+
+export interface OllamaTagsResponse {
+  models: OllamaModel[]
+}
+
+export interface OllamaGenerateResponse {
+  response: string
+  prompt_eval_count?: number
+  eval_count?: number
 }

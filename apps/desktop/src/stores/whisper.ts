@@ -37,7 +37,7 @@ export const useWhisperStore = defineStore('whisper', {
 
       this.unsubscribeHandles.push(
         window.fosswhisper.onWhisperProgress((event) => {
-          const task = this.tasks.find((item) => item.id === event.taskId)
+          const task = this.tasks.find((item: RuntimeTask) => item.id === event.taskId)
           if (!task) {
             return
           }
@@ -49,7 +49,7 @@ export const useWhisperStore = defineStore('whisper', {
 
       this.unsubscribeHandles.push(
         window.fosswhisper.onWhisperComplete((event: WhisperCompleteEvent) => {
-          const task = this.tasks.find((item) => item.id === event.taskId)
+          const task = this.tasks.find((item: RuntimeTask) => item.id === event.taskId)
           if (!task) {
             return
           }
@@ -62,7 +62,7 @@ export const useWhisperStore = defineStore('whisper', {
 
       this.unsubscribeHandles.push(
         window.fosswhisper.onWhisperError((event: WhisperErrorEvent) => {
-          const task = this.tasks.find((item) => item.id === event.taskId)
+          const task = this.tasks.find((item: RuntimeTask) => item.id === event.taskId)
           if (!task) {
             return
           }

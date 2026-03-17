@@ -1,3 +1,5 @@
+import type { AiCustomPrompts, AiTaskType } from './types'
+
 // AI Prompt 模板
 
 // 預設模板（內建，隨 app 更新）
@@ -14,8 +16,8 @@ const DEFAULT_PROMPTS = {
 
 // 取得有效模板（自訂 > 預設）
 export function getPrompt(
-  task: keyof typeof DEFAULT_PROMPTS,
-  customPrompts?: Record<string, string>
+  task: AiTaskType,
+  customPrompts?: AiCustomPrompts
 ): (...args: any[]) => string {
   const custom = customPrompts?.[task]
   if (custom) {

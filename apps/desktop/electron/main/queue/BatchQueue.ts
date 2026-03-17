@@ -75,7 +75,7 @@ export class BatchQueue extends EventEmitter {
   addFiles(filePaths: string[]): void {
     for (const filePath of filePaths) {
       const extension = getFileExtension(filePath)
-      if (!SUPPORTED_INPUT_FORMATS.includes(extension)) {
+      if (!isSupportedInputFormat(extension)) {
         throw new Error(`Unsupported file format: ${filePath}`)
       }
     }
@@ -292,4 +292,8 @@ function toErrorMessage(error: unknown): string {
     return error.message
   }
   return String(error)
+}
+
+function isSupportedInputFormat(extension: string): boolean {
+  return (SUPPORTED_INPUT_FORMATS as readonly string[]).includes(extension)
 }

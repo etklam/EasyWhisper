@@ -58,3 +58,61 @@ export interface WhisperSettings {
 export interface AppSettings {
   whisper: WhisperSettings
 }
+
+export type AiTaskType = 'correct' | 'translate' | 'summary'
+
+export interface AiCustomPrompts {
+  correct?: string
+  translate?: string
+  summary?: string
+}
+
+export interface AiRunPayload {
+  id?: string
+  text: string
+  taskType: AiTaskType
+  targetLang?: string
+  batchMode?: boolean
+  chunkSize?: number
+  timeout?: number
+  customPrompts?: AiCustomPrompts
+}
+
+export interface AiProgressEvent {
+  taskId: string
+  taskType: AiTaskType
+  progress: number
+  currentChunk?: number
+  totalChunks?: number
+  tokensUsed?: number
+}
+
+export interface AiSuccessResult {
+  taskId: string
+  taskType: AiTaskType
+  result: string
+  tokensUsed?: number
+  durationMs: number
+}
+
+export interface AiErrorResult {
+  taskId: string
+  taskType: AiTaskType
+  error: string
+  detail?: string
+}
+
+export interface AiSkippedResult {
+  taskId: string
+  taskType: AiTaskType
+  skipped: true
+  reason: string
+}
+
+export type AiRunResult = AiSuccessResult | AiErrorResult | AiSkippedResult
+
+export interface AiStatusResponse {
+  running: boolean
+  activeTasks: number
+  queueLength: number
+}

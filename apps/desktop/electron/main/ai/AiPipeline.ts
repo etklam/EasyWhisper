@@ -1,9 +1,16 @@
-// AI Pipeline - 處理 AI 任務（翻譯、摘要、修正）
 import { chat } from './OllamaClient'
 import { getPrompt } from './prompts'
-import type { AiTask, AiProgress, AiComplete, AiError, AiSettings, PipelineOptions } from './types'
+import type {
+  AiError,
+  AiProgressEvent,
+  AiRunResult,
+  AiSettings,
+  AiTask,
+  PipelineOptions,
+  ResolvedPipelineOptions
+} from './types'
 
-const DEFAULT_OPTIONS: PipelineOptions = {
+const DEFAULT_OPTIONS: ResolvedPipelineOptions = {
   concurrency: 2,
   chunkSize: 4000,
   timeout: 30000,
@@ -12,18 +19,26 @@ const DEFAULT_OPTIONS: PipelineOptions = {
 }
 
 export class AiPipeline {
-  private queue: Map<string, Promise<void>> = new Map()
+  public tasks: {
+    correct: boolean
+    translate: boolean
+    summary: boolean
+  }
+
+  public readonly options: ResolvedPipelineOptions
+
   private activeCount = 0
 
   constructor(
     public readonly model: string,
-    public readonly tasks: {
+    tasks: {
       correct: boolean
       translate: boolean
       summary: boolean
     },
-    private readonly options: PipelineOptions = {}
+    options: PipelineOptions = {}
   ) {
+    this.tasks = { ...tasks }
     this.options = { ...DEFAULT_OPTIONS, ...options }
   }
 
@@ -36,106 +51,115 @@ export class AiPipeline {
   }
 
   async process(task: AiTask): Promise<void> {
-    // Check if task is enabled
     if (!this.tasks[task.taskType]) {
       task.onResult?.({
         taskId: task.id,
+        taskType: task.taskType,
         skipped: true,
         reason: `${task.taskType} task is disabled`
       })
       return
     }
 
-    // Wait for slot
     await this.waitForSlot()
+    this.activeCount += 1
 
-    // Process task
-    this.activeCount++
     try {
-      await this.processTask(task)
+      const result = await this.processTask(task)
+      task.onResult?.(result)
+    } catch (error) {
+      task.onResult?.(toAiError(task, error))
     } finally {
-      this.activeCount--
+      this.activeCount = Math.max(0, this.activeCount - 1)
+    }
+  }
+
+  updateSettings(settings: Partial<AiSettings>): void {
+    this.tasks = {
+      correct: settings.tasks?.correct ?? this.tasks.correct,
+      translate: settings.tasks?.translate ?? this.tasks.translate,
+      summary: settings.tasks?.summary ?? this.tasks.summary
+    }
+  }
+
+  getStatus(): { activeTasks: number } {
+    return {
+      activeTasks: this.activeCount
     }
   }
 
   private async waitForSlot(): Promise<void> {
-    while (this.activeCount >= this.options.concurrency!) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+    while (this.activeCount >= this.options.concurrency) {
+      await delay(100)
     }
   }
 
-  private async processTask(task: AiTask): Promise<void> {
+  private async processTask(task: AiTask): Promise<AiRunResult> {
     const promptFn = getPrompt(task.taskType, task.customPrompts)
-
-    // Split into chunks based on strategy
     const chunks = this.splitText(task.text, {
-      batchSize: task.batchMode ? this.options.chunkSize! : Infinity,
+      batchSize: task.batchMode ? this.options.contextWindow : Infinity,
       batchMode: task.batchMode ?? false,
-      chunkSize: task.chunkSize ?? this.options.chunkSize!
+      chunkSize: task.chunkSize ?? this.options.chunkSize
     })
 
-    let results: string[] = []
+    const results: string[] = []
     let totalTokensUsed = 0
-    const startTime = Date.now()
+    const startedAt = Date.now()
 
-    for (let i = 0; i < chunks.length; i++) {
-      const progress = ((i + 1) / chunks.length) * 100
-      task.onProgress?.({
-        taskId: task.id,
-        taskType: task.taskType,
-        progress,
-        currentChunk: i + 1,
-        totalChunks: chunks.length
-      })
+    for (let index = 0; index < chunks.length; index += 1) {
+      task.onProgress?.(this.createProgress(task, index, chunks.length))
 
-      try {
-        // Add context from previous chunk for better coherence
-        const context = this.buildContext(chunks, i, task.taskType)
-        
-        // For translate and correct tasks, pass text and targetLang
-        let fullPrompt = context
-        if (task.taskType === 'translate') {
-          fullPrompt += promptFn(chunks[i], task.targetLang)
-        } else if (task.taskType === 'correct') {
-          fullPrompt += promptFn(chunks[i], task.targetLang || 'en')
-        } else {
-          // Summary - only text
-          fullPrompt += promptFn(chunks[i])
-        }
+      const context = this.buildContext(chunks, index, task.taskType)
+      const prompt = this.buildPrompt(task, promptFn, context, chunks[index])
+      const response = await this.runWithTimeout(
+        chat(this.model, prompt),
+        task.timeout ?? this.options.timeout
+      )
 
-        const response = await Promise.race([
-          chat(this.model, fullPrompt),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('AI task timeout')), task.timeout ?? this.options.timeout!)
-          )
-        ])
-
-        results.push(response.response)
-        totalTokensUsed += response.prompt_eval_count || 0
-      } catch (error) {
-        task.onResult?.({
-          taskId: task.id,
-          taskType: task.taskType,
-          error: error instanceof Error ? error.message : String(error),
-          detail: error
-        })
-        return
-      }
+      results.push(response.response)
+      totalTokensUsed += response.prompt_eval_count ?? 0
     }
 
-    // Aggregate results
-    const finalResult = this.aggregateResults(results, task.taskType, chunks.length)
-
-    task.onResult?.({
+    return {
       taskId: task.id,
-      result: finalResult,
+      taskType: task.taskType,
+      result: this.aggregateResults(results),
       tokensUsed: totalTokensUsed,
-      durationMs: Date.now() - startTime
-    })
+      durationMs: Date.now() - startedAt
+    }
   }
 
-  private splitText(text: string, options: { batchSize: number; batchMode: boolean; chunkSize: number }): string[] {
-    // If batch mode is disabled or text is short enough, return as single chunk
+  private createProgress(task: AiTask, index: number, totalChunks: number): AiProgressEvent {
+    return {
+      taskId: task.id,
+      taskType: task.taskType,
+      progress: ((index + 1) / totalChunks) * 100,
+      currentChunk: index + 1,
+      totalChunks
+    }
+  }
+
+  private buildPrompt(
+    task: AiTask,
+    promptFn: (...args: string[]) => string,
+    context: string,
+    text: string
+  ): string {
+    if (task.taskType === 'translate') {
+      return `${context}${promptFn(text, task.targetLang ?? 'en')}`
+    }
+
+    if (task.taskType === 'correct') {
+      return `${context}${promptFn(text, task.targetLang ?? 'en')}`
+    }
+
+    return `${context}${promptFn(text)}`
+  }
+
+  private splitText(
+    text: string,
+    options: { batchSize: number; batchMode: boolean; chunkSize: number }
+  ): string[] {
     if (!options.batchMode || text.length <= options.batchSize) {
       return [text]
     }
@@ -143,22 +167,19 @@ export class AiPipeline {
     const chunks: string[] = []
     let currentChunk = ''
     let currentTokens = 0
-
-    // Split by sentences first to avoid breaking in the middle
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
+    const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text]
 
     for (const sentence of sentences) {
       const sentenceTokens = this.estimateTokens(sentence)
-      const tokensWithBuffer = currentTokens + sentenceTokens
-
-      if (tokensWithBuffer > options.chunkSize && currentChunk) {
+      if (currentChunk && currentTokens + sentenceTokens > options.chunkSize) {
         chunks.push(currentChunk.trim())
         currentChunk = sentence
         currentTokens = sentenceTokens
-      } else {
-        currentChunk += (currentChunk ? ' ' : '') + sentence
-        currentTokens = tokensWithBuffer
+        continue
       }
+
+      currentChunk += `${currentChunk ? ' ' : ''}${sentence}`.trimEnd()
+      currentTokens += sentenceTokens
     }
 
     if (currentChunk) {
@@ -169,44 +190,53 @@ export class AiPipeline {
   }
 
   private buildContext(chunks: string[], currentIndex: number, taskType: string): string {
-    // Add context from previous chunks for better coherence
-    // Only for translation and correct tasks
-    if (currentIndex === 0 || ['summary'].includes(taskType)) {
+    if (currentIndex === 0 || taskType === 'summary') {
       return ''
     }
 
-    // Include last 2-3 sentences from previous chunk as context
     const previousChunk = chunks[currentIndex - 1]
     const sentences = previousChunk.match(/[^.!?]+[.!?]+/g) || []
     const contextSentences = sentences.slice(-3).join(' ')
-
-    if (contextSentences) {
-      return `Previous context: ${contextSentences}\n\nNow translate the following:\n\n`
+    if (!contextSentences) {
+      return ''
     }
 
-    return ''
+    return `Previous context: ${contextSentences}\n\n`
   }
 
-  private aggregateResults(results: string[], taskType: string, totalChunks: number): string {
-    if (totalChunks === 1) {
-      return results[0]
+  private aggregateResults(results: string[]): string {
+    if (results.length <= 1) {
+      return results[0] ?? ''
     }
 
-    // For batch translation, results should already be complete
-    // For other tasks, we might need to clean up
     return results.join('\n\n').trim()
   }
 
   private estimateTokens(text: string): number {
-    // Rough estimation: 1 char ≈ 0.3 tokens for mixed English/Chinese
     return Math.ceil(text.length * 0.3)
   }
 
-  updateSettings(settings: Partial<AiSettings>): void {
-    this.tasks = {
-      correct: settings.tasks?.correct ?? this.tasks.correct,
-      translate: settings.tasks?.translate ?? this.tasks.translate,
-      summary: settings.tasks?.summary ?? this.tasks.summary
-    }
+  private async runWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        setTimeout(() => reject(new Error('AI task timeout')), timeoutMs)
+      })
+    ])
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+function toAiError(task: AiTask, error: unknown): AiError {
+  return {
+    taskId: task.id,
+    taskType: task.taskType,
+    error: error instanceof Error ? error.message : String(error),
+    detail: error instanceof Error ? error.message : String(error)
   }
 }

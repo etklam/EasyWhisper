@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
 
+import { registerAiIpc } from './ipc/ai'
 import { registerWhisperIpc } from './ipc/whisper'
 
 function createWindow(): BrowserWindow {
@@ -18,6 +19,7 @@ function createWindow(): BrowserWindow {
   })
 
   registerWhisperIpc(mainWindow)
+  registerAiIpc(mainWindow)
 
   if (process.env.VITE_DEV_SERVER_URL) {
     void mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
