@@ -5,16 +5,49 @@ import type { WhisperProgressEvent, WhisperCompleteEvent, WhisperErrorEvent } fr
 
 // Mock window.fosswhisper
 const mockStartWhisper = vi.fn().mockResolvedValue({ taskId: 'test-123', accepted: true })
+const mockStartYtDlp = vi.fn().mockResolvedValue({ taskId: 'test-123', accepted: true })
+const mockGetSettings = vi.fn().mockResolvedValue({
+  modelPath: '/path/to/models/ggml-base.bin',
+  threads: 4,
+  language: 'auto',
+  useMetal: true,
+  outputDir: '',
+  ytdlpAudioFormat: 'mp3',
+  ytdlpCookiesPath: '',
+  aiEnabled: false,
+  aiModel: '',
+  aiTargetLang: 'zh-TW',
+  aiCorrect: false,
+  aiTranslate: false,
+  aiSummary: false
+})
+const mockSetSettings = vi.fn().mockImplementation(async (settings) => ({
+  ...(await mockGetSettings()),
+  ...settings
+}))
+const mockListAiModels = vi.fn().mockResolvedValue(['llama3.1'])
+const mockRunAi = vi.fn()
 const mockUnsubscribeProgress = vi.fn()
 const mockUnsubscribeComplete = vi.fn()
 const mockUnsubscribeError = vi.fn()
+const mockUnsubscribeYtDlpProgress = vi.fn()
+const mockUnsubscribeYtDlpComplete = vi.fn()
+const mockUnsubscribeYtDlpError = vi.fn()
 
 Object.defineProperty(window, 'fosswhisper', {
   value: {
     startWhisper: mockStartWhisper,
+    startYtDlp: mockStartYtDlp,
+    getSettings: mockGetSettings,
+    setSettings: mockSetSettings,
+    listAiModels: mockListAiModels,
+    runAi: mockRunAi,
     onWhisperProgress: vi.fn(() => mockUnsubscribeProgress),
     onWhisperComplete: vi.fn(() => mockUnsubscribeComplete),
-    onWhisperError: vi.fn(() => mockUnsubscribeError)
+    onWhisperError: vi.fn(() => mockUnsubscribeError),
+    onYtDlpProgress: vi.fn(() => mockUnsubscribeYtDlpProgress),
+    onYtDlpComplete: vi.fn(() => mockUnsubscribeYtDlpComplete),
+    onYtDlpError: vi.fn(() => mockUnsubscribeYtDlpError)
   },
   writable: true
 })
@@ -32,6 +65,7 @@ describe('WhisperStore', () => {
     expect(store.settings.threads).toBe(4)
     expect(store.settings.language).toBe('auto')
     expect(store.settings.useMetal).toBe(true)
+    expect(store.settings.ytdlpAudioFormat).toBe('mp3')
     expect(store.tasks).toHaveLength(0)
   })
 
@@ -61,10 +95,10 @@ describe('WhisperStore', () => {
     )
   })
 
-  it('should update settings', () => {
+  it('should update settings', async () => {
     const store = useWhisperStore()
 
-    store.updateSettings({
+    await store.updateSettings({
       modelPath: '/new/model/path.bin',
       threads: 8,
       language: 'en'
@@ -74,6 +108,17 @@ describe('WhisperStore', () => {
     expect(store.settings.threads).toBe(8)
     expect(store.settings.language).toBe('en')
     expect(store.settings.useMetal).toBe(true) // unchanged
+  })
+
+  it('should initialize from preload settings', async () => {
+    const store = useWhisperStore()
+
+    await store.initialize()
+
+    expect(mockGetSettings).toHaveBeenCalled()
+    expect(mockListAiModels).toHaveBeenCalled()
+    expect(store.initialized).toBe(true)
+    expect(store.aiModels).toEqual(['llama3.1'])
   })
 
   it('should bind IPC listeners only once', () => {

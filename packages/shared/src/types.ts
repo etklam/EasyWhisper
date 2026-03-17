@@ -55,6 +55,18 @@ export interface WhisperSettings {
   outputDir: string
 }
 
+export interface WorkflowSettings extends WhisperSettings {
+  ytdlpAudioFormat: 'mp3' | 'wav' | 'm4a'
+  ytdlpCookiesPath: string
+  aiEnabled: boolean
+  aiModel: string
+  aiTargetLang: string
+  aiCorrect: boolean
+  aiTranslate: boolean
+  aiSummary: boolean
+  aiCustomPrompts?: AiCustomPrompts
+}
+
 export interface AppSettings {
   whisper: WhisperSettings
 }
@@ -69,6 +81,7 @@ export interface AiCustomPrompts {
 
 export interface AiRunPayload {
   id?: string
+  model?: string
   text: string
   taskType: AiTaskType
   targetLang?: string
@@ -115,4 +128,31 @@ export interface AiStatusResponse {
   running: boolean
   activeTasks: number
   queueLength: number
+}
+
+export interface YtDlpStartPayload {
+  taskId?: string
+  url: string
+  format?: 'mp3' | 'wav' | 'm4a'
+  cookiesPath?: string
+}
+
+export interface YtDlpStartResponse {
+  taskId: string
+  accepted: true
+}
+
+export interface YtDlpProgressEvent {
+  taskId: string
+  progress: number
+}
+
+export interface YtDlpCompleteEvent {
+  taskId: string
+  outputPath: string
+}
+
+export interface YtDlpErrorEvent {
+  taskId: string
+  error: string
 }

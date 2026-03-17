@@ -10,9 +10,14 @@
         <section class="main-grid">
           <div class="left-column">
             <DropZone @files="handleFiles" />
+            <UrlImportPanel @submit="handleUrls" />
             <TaskQueue :tasks="store.tasks" />
           </div>
-          <SettingsPanel :settings="store.settings" @apply="store.updateSettings" />
+          <SettingsPanel
+            :settings="store.settings"
+            :ai-models="store.aiModels"
+            @apply="store.updateSettings"
+          />
         </section>
       </div>
     </n-message-provider>
@@ -25,12 +30,14 @@ import { onBeforeUnmount, onMounted } from 'vue'
 import DropZone from '@/components/DropZone.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 import TaskQueue from '@/components/TaskQueue.vue'
+import UrlImportPanel from '@/components/UrlImportPanel.vue'
 import { useWhisperStore } from '@/stores/whisper'
 
 const store = useWhisperStore()
 
-onMounted(() => {
+onMounted(async () => {
   store.bindIpcListeners()
+  await store.initialize()
 })
 
 onBeforeUnmount(() => {
@@ -42,6 +49,13 @@ async function handleFiles(paths: string[]) {
     return
   }
   await store.enqueueFiles(paths)
+}
+
+async function handleUrls(value: string) {
+  if (value.trim().length === 0) {
+    return
+  }
+  await store.enqueueUrls(value)
 }
 </script>
 

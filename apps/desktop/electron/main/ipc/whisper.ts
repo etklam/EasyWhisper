@@ -13,6 +13,9 @@ import { WhisperMac } from '../whisper/WhisperMac'
 const whisperMac = new WhisperMac()
 
 export function registerWhisperIpc(mainWindow: BrowserWindow): void {
+  if (typeof ipcMain.removeHandler === 'function') {
+    ipcMain.removeHandler(IPC_CHANNELS.WHISPER_START)
+  }
   ipcMain.handle(
     IPC_CHANNELS.WHISPER_START,
     async (_event, payload: WhisperStartPayload): Promise<WhisperStartResponse> => {

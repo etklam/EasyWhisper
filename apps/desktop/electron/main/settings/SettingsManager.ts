@@ -9,6 +9,8 @@ const DEFAULT_SETTINGS: SettingsSchema = {
   locale: 'en',
   whisperModel: 'ggml-base.bin',
   whisperThreads: 4,
+  whisperLanguage: 'auto',
+  whisperUseMetal: true,
   outputDir: '',
   outputFormats: ['txt', 'srt'],
   maxTranscribeConcurrency: 1,

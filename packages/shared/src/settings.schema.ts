@@ -6,6 +6,8 @@ export interface SettingsSchema {
   locale: 'en' | 'zh-TW' | 'zh-CN'
   whisperModel: string              // e.g. 'ggml-base.bin'
   whisperThreads: number
+  whisperLanguage?: string
+  whisperUseMetal?: boolean
   outputDir: string
   outputFormats: ('txt' | 'srt' | 'vtt' | 'json')[]
   maxTranscribeConcurrency: number  // Whisper 佇列並行數，預設 1
