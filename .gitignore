@@ -32,3 +32,6 @@ resources/models/*.bin
 # Temp files
 *.log
 tmp/
+
+# TypeScript incremental build metadata
+*.tsbuildinfo
