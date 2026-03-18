@@ -1,0 +1,137 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "back": "返回",
+    "open": "打开"
+  },
+  "nav": {
+    "home": "工作台",
+    "settings": "设置",
+    "backToWorkspace": "返回工作台",
+    "openSettings": "设置"
+  },
+  "app": {
+    "title": "FOSSWhisper",
+    "subtitleHome": "本机转录工作台",
+    "subtitleSettings": "管理模型、转录与下载设置"
+  },
+  "home": {
+    "dropZone": {
+      "title": "拖放音频或视频文件",
+      "hint": "支持批量导入，支持格式：{formats}",
+      "selectFiles": "选择文件"
+    },
+    "urlImport": {
+      "title": "批量导入 URL",
+      "placeholder": "输入 URL（每行一个）",
+      "import": "导入 URL"
+    },
+    "queue": {
+      "title": "任务队列",
+      "empty": "暂无任务"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "language": {
+      "title": "语言",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
+    },
+    "model": {
+      "title": "模型设置",
+      "openFolder": "打开模型文件夹"
+    },
+    "transcription": {
+      "title": "转录设置",
+      "threads": "线程数",
+      "language": "语言",
+      "outputDir": "输出目录",
+      "useMetal": "启用 Metal GPU 加速",
+      "save": "保存转录设置",
+      "saved": "转录设置已保存",
+      "saveFailed": "保存失败，请重试"
+    },
+    "download": {
+      "title": "下载设置",
+      "openOutputFolder": "打开输出文件夹",
+      "audioFormat": "yt-dlp 音频格式",
+      "cookiesPath": "yt-dlp Cookies 路径",
+      "cookiesPlaceholder": "可选 cookies.txt 路径",
+      "save": "保存下载设置",
+      "saved": "下载设置已保存",
+      "saveFailed": "保存失败，请重试"
+    },
+    "messages": {
+      "folderOpened": "已打开文件夹",
+      "openFolderFailed": "打开文件夹失败：{error}"
+    }
+  },
+  "components": {
+    "importPanel": {
+      "fileImport": "文件导入",
+      "urlImport": "URL 导入"
+    },
+    "modelSelector": {
+      "selectModel": "选择模型",
+      "downloading": "下载中...",
+      "download": "下载"
+    },
+    "queueItem": {
+      "statusPending": "等待中",
+      "statusRunning": "运行中",
+      "statusCompleted": "已完成",
+      "statusError": "错误",
+      "remove": "移除"
+    }
+  },
+  "messages": {
+    "ignoredFiles": "已忽略 {count} 个不支持的文件",
+    "noValidFiles": "没有可导入的音频或视频文件",
+    "filesAdded": "已加入 {count} 个文件",
+    "error": "错误：{message}"
+  },
+  "queue": {
+    "unnamed": "未命名任务",
+    "status": {
+      "pending": "等待中",
+      "downloading": "下载中",
+      "converting": "转换中",
+      "transcribing": "转录中",
+      "ai": "AI 处理中",
+      "done": "已完成",
+      "error": "错误",
+      "paused": "已暂停"
+    },
+    "messages": {
+      "downloading": "正在下载音频 {progress}%",
+      "downloadComplete": "下载完成，准备转换音频",
+      "converting": "正在转换音频 {progress}%",
+      "convertingToWav": "正在转换为 16kHz WAV",
+      "conversionComplete": "音频转换完成，准备转录",
+      "transcribing": "正在转录",
+      "paused": "已暂停",
+      "cannotPause": "当前任务无法立即暂停，稍后可重试",
+      "cancelled": "已取消",
+      "waitingDownload": "等待下载音频",
+      "audioNotFound": "找不到可转录的音频文件",
+      "startTranscribing": "开始转录",
+      "startTranscribingDownload": "开始转录下载内容",
+      "outputFormatFailed": "输出格式化失败：{error}",
+      "aiQueued": "AI 排队中，等待执行{step}",
+      "aiQueuedShort": "AI 排队中",
+      "aiProcessing": "AI 正在{step} {progress}%",
+      "complete": "完成，用时 {duration} 秒",
+      "transcriptionAiComplete": "转录与 AI 处理完成",
+      "aiFailed": "AI 处理失败：{error}",
+      "fileNotFound": "找不到可处理的文件",
+      "aiStep": {
+        "correct": "修正",
+        "translate": "翻译",
+        "summary": "摘要"
+      }
+    }
+  }
+}

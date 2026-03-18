@@ -1,0 +1,137 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "open": "Open"
+  },
+  "nav": {
+    "home": "Workspace",
+    "settings": "Settings",
+    "backToWorkspace": "Back to Workspace",
+    "openSettings": "Settings"
+  },
+  "app": {
+    "title": "FOSSWhisper",
+    "subtitleHome": "Local Transcription Workspace",
+    "subtitleSettings": "Manage models, transcription, and download settings"
+  },
+  "home": {
+    "dropZone": {
+      "title": "Drag and drop audio or video files",
+      "hint": "Batch import supported. Supported formats: {formats}",
+      "selectFiles": "Select Files"
+    },
+    "urlImport": {
+      "title": "Batch Import URLs",
+      "placeholder": "Enter URLs (one per line)",
+      "import": "Import URLs"
+    },
+    "queue": {
+      "title": "Task Queue",
+      "empty": "No tasks yet"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "title": "Language",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
+    },
+    "model": {
+      "title": "Model Settings",
+      "openFolder": "Open Model Folder"
+    },
+    "transcription": {
+      "title": "Transcription Settings",
+      "threads": "Threads",
+      "language": "Language",
+      "outputDir": "Output Directory",
+      "useMetal": "Enable Metal GPU Acceleration",
+      "save": "Save Transcription Settings",
+      "saved": "Transcription settings saved",
+      "saveFailed": "Save failed, please try again"
+    },
+    "download": {
+      "title": "Download Settings",
+      "openOutputFolder": "Open Output Folder",
+      "audioFormat": "yt-dlp Audio Format",
+      "cookiesPath": "yt-dlp Cookies Path",
+      "cookiesPlaceholder": "Optional cookies.txt path",
+      "save": "Save Download Settings",
+      "saved": "Download settings saved",
+      "saveFailed": "Save failed, please try again"
+    },
+    "messages": {
+      "folderOpened": "Folder opened",
+      "openFolderFailed": "Failed to open folder: {error}"
+    }
+  },
+  "components": {
+    "importPanel": {
+      "fileImport": "File Import",
+      "urlImport": "URL Import"
+    },
+    "modelSelector": {
+      "selectModel": "Select Model",
+      "downloading": "Downloading...",
+      "download": "Download"
+    },
+    "queueItem": {
+      "statusPending": "Pending",
+      "statusRunning": "Running",
+      "statusCompleted": "Completed",
+      "statusError": "Error",
+      "remove": "Remove"
+    }
+  },
+  "messages": {
+    "ignoredFiles": "Ignored {count} unsupported files",
+    "noValidFiles": "No valid audio or video files to import",
+    "filesAdded": "Added {count} files",
+    "error": "Error: {message}"
+  },
+  "queue": {
+    "unnamed": "Unnamed Task",
+    "status": {
+      "pending": "Pending",
+      "downloading": "Downloading",
+      "converting": "Converting",
+      "transcribing": "Transcribing",
+      "ai": "AI Processing",
+      "done": "Completed",
+      "error": "Error",
+      "paused": "Paused"
+    },
+    "messages": {
+      "downloading": "Downloading audio {progress}%",
+      "downloadComplete": "Download complete, preparing conversion",
+      "converting": "Converting audio {progress}%",
+      "convertingToWav": "Converting to 16kHz WAV",
+      "conversionComplete": "Audio conversion complete, preparing transcription",
+      "transcribing": "Transcribing",
+      "paused": "Paused",
+      "cannotPause": "Task cannot be paused immediately, retry later",
+      "cancelled": "Cancelled",
+      "waitingDownload": "Waiting for audio download",
+      "audioNotFound": "Audio file not found for transcription",
+      "startTranscribing": "Starting transcription",
+      "startTranscribingDownload": "Starting transcription of downloaded content",
+      "outputFormatFailed": "Output formatting failed: {error}",
+      "aiQueued": "AI queued, waiting{step}",
+      "aiQueuedShort": "AI queued",
+      "aiProcessing": "AI processing {step} {progress}%",
+      "complete": "Completed in {duration}s",
+      "transcriptionAiComplete": "Transcription and AI processing complete",
+      "aiFailed": "AI processing failed: {error}",
+      "fileNotFound": "No processable files found",
+      "aiStep": {
+        "correct": "correcting",
+        "translate": "translating",
+        "summary": "summarizing"
+      }
+    }
+  }
+}
