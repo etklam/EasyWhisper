@@ -8,9 +8,9 @@
       @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop"
     >
-      <p class="title">拖放音频或视频文件</p>
-      <p class="hint">支持批量导入，支持格式：{{ acceptedLabel }}</p>
-      <n-button tertiary type="primary" @click="openFilePicker">选择文件</n-button>
+      <p class="title">{{ t('home.dropZone.title') }}</p>
+      <p class="hint">{{ t('home.dropZone.hint', { formats: acceptedLabel }) }}</p>
+      <n-button tertiary type="primary" @click="openFilePicker">{{ t('home.dropZone.selectFiles') }}</n-button>
       <input
         ref="inputRef"
         type="file"
@@ -26,12 +26,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useMessage } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_VIDEO_FORMATS } from '@shared/formats'
 import { useQueueStore } from '@/stores/queue'
 
 const queueStore = useQueueStore()
 const message = useMessage()
+const { t } = useI18n()
 const inputRef = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 
@@ -79,18 +81,18 @@ function queueFiles(filePaths: string[]) {
   const rejectedCount = filePaths.length - validFiles.length
 
   if (rejectedCount > 0) {
-    message.warning(`已忽略 ${rejectedCount} 个不支持的文件`)
+    message.warning(t('messages.ignoredFiles', { count: rejectedCount }))
   }
 
   if (validFiles.length === 0) {
     if (filePaths.length > 0) {
-      message.error('没有可导入的音频或视频文件')
+      message.error(t('messages.noValidFiles'))
     }
     return
   }
 
   queueStore.enqueueFiles(validFiles)
-  message.success(`已加入 ${validFiles.length} 个文件`)
+  message.success(t('messages.filesAdded', { count: validFiles.length }))
 }
 
 function isSupportedFile(filePath: string): boolean {
