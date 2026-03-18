@@ -3,7 +3,18 @@
     <n-space vertical :size="16">
       <n-card>
         <template #header>
-          <span class="section-title">模型设置</span>
+          <div class="section-header">
+            <span class="section-title">模型设置</span>
+            <n-button
+              size="small"
+              quaternary
+              type="primary"
+              data-testid="open-model-folder"
+              @click="openModelFolder"
+            >
+              打开模型文件夹
+            </n-button>
+          </div>
         </template>
         <ModelSelector />
       </n-card>
@@ -30,13 +41,26 @@
             <n-text class="switch-label">启用 Metal GPU 加速</n-text>
           </n-form-item>
 
-          <n-button type="primary" data-testid="save-transcription-settings" @click="applyTranscriptionSettings">保存转录设置</n-button>
+          <n-button type="primary" data-testid="save-transcription-settings" @click="applyTranscriptionSettings">
+            保存转录设置
+          </n-button>
         </n-form>
       </n-card>
 
       <n-card>
         <template #header>
-          <span class="section-title">下载设置</span>
+          <div class="section-header">
+            <span class="section-title">下载设置</span>
+            <n-button
+              size="small"
+              quaternary
+              type="primary"
+              data-testid="open-output-folder"
+              @click="openOutputFolder"
+            >
+              打开输出文件夹
+            </n-button>
+          </div>
         </template>
         <n-form label-placement="top" :model="localSettings">
           <n-form-item label="yt-dlp 音频格式">
@@ -45,7 +69,9 @@
           <n-form-item label="yt-dlp Cookies 路径">
             <n-input v-model:value="localSettings.ytdlpCookiesPath" placeholder="可选 cookies.txt 路径" />
           </n-form-item>
-          <n-button type="primary" data-testid="save-download-settings" @click="applyDownloadSettings">保存下载设置</n-button>
+          <n-button type="primary" data-testid="save-download-settings" @click="applyDownloadSettings">
+            保存下载设置
+          </n-button>
         </n-form>
       </n-card>
     </n-space>
@@ -72,6 +98,32 @@ watch(
   },
   { deep: true }
 )
+
+async function openModelFolder() {
+  try {
+    const result = await window.fosswhisper.openModelFolder()
+    if (result.ok) {
+      message.success('已打开模型文件夹')
+    } else {
+      message.error(`打开文件夹失败: ${result.error}`)
+    }
+  } catch (error) {
+    message.error(`打开文件夹失败: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+async function openOutputFolder() {
+  try {
+    const result = await window.fosswhisper.openOutputFolder()
+    if (result.ok) {
+      message.success('已打开输出文件夹')
+    } else {
+      message.error(`打开文件夹失败: ${result.error}`)
+    }
+  } catch (error) {
+    message.error(`打开文件夹失败: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
 
 async function applyTranscriptionSettings() {
   try {
@@ -104,6 +156,13 @@ async function applyDownloadSettings() {
 .settings-view {
   display: grid;
   gap: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
 .section-title {
