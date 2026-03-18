@@ -1,10 +1,10 @@
 <template>
-  <n-config-provider>
+  <n-config-provider :locale="naiveLocale">
     <n-message-provider>
       <div class="app-shell">
         <header class="shell-header">
           <div>
-            <h1>FOSSWhisper</h1>
+            <h1>{{ t('app.title') }}</h1>
             <p>{{ subtitle }}</p>
           </div>
 
@@ -14,7 +14,7 @@
             secondary
             @click="goHome"
           >
-            返回工作台
+            {{ t('nav.backToWorkspace') }}
           </n-button>
           <n-button
             v-else
@@ -22,7 +22,7 @@
             secondary
             @click="goSettings"
           >
-            设置
+            {{ t('nav.openSettings') }}
           </n-button>
         </header>
 
@@ -37,13 +37,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { getNaiveLocale } from '@/utils/i18n-helpers'
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale } = useI18n()
 
 const isSettings = computed(() => route.name === 'settings')
-
-const subtitle = computed(() => (isSettings.value ? '管理模型、转录与下载设置' : '本机转录工作台'))
+const subtitle = computed(() =>
+  isSettings.value ? t('app.subtitleSettings') : t('app.subtitleHome')
+)
+const naiveLocale = computed(() => getNaiveLocale(locale.value))
 
 function goHome() {
   void router.push({ name: 'home' })
