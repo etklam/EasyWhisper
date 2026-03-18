@@ -41,7 +41,8 @@ function createDefaultSettings(): WorkflowSettings {
     aiTargetLang: 'zh-TW',
     aiCorrect: false,
     aiTranslate: false,
-    aiSummary: false
+    aiSummary: false,
+    locale: 'en'
   }
 }
 
