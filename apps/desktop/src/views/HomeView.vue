@@ -1,40 +1,39 @@
 <template>
-  <n-config-provider>
-    <n-message-provider>
-      <div class="layout">
-        <header class="header">
-          <h1>FOSSWhisper</h1>
-          <p>本机转录工作台：下载、转 WAV、Whisper 转录与输出格式管理</p>
-        </header>
+  <n-message-provider>
+    <div class="layout">
+      <header class="header">
+        <h1>{{ t('app.title') }}</h1>
+        <p>{{ t('app.subtitleHome') }}</p>
+      </header>
 
-        <section class="main-grid">
-          <div class="left-column">
-            <ImportPanel />
-            <QueueTable />
-          </div>
-          <div class="right-column">
-            <AiQuickToggles />
-            <n-card title="输出格式">
-              <n-checkbox-group
-                :value="whisperStore.settings.outputFormats"
-                @update:value="handleOutputFormatsChange"
-              >
-                <n-space vertical>
-                  <n-checkbox v-for="format in whisperStore.outputFormats" :key="format" :value="format">
-                    {{ format.toUpperCase() }}
-                  </n-checkbox>
-                </n-space>
-              </n-checkbox-group>
-            </n-card>
-          </div>
-        </section>
-      </div>
-    </n-message-provider>
-  </n-config-provider>
+      <section class="main-grid">
+        <div class="left-column">
+          <ImportPanel />
+          <QueueTable />
+        </div>
+        <div class="right-column">
+          <AiQuickToggles />
+          <n-card :title="t('home.outputFormats')">
+            <n-checkbox-group
+              :value="whisperStore.settings.outputFormats"
+              @update:value="handleOutputFormatsChange"
+            >
+              <n-space vertical>
+                <n-checkbox v-for="format in whisperStore.outputFormats" :key="format" :value="format">
+                  {{ format.toUpperCase() }}
+                </n-checkbox>
+              </n-space>
+            </n-checkbox-group>
+          </n-card>
+        </div>
+      </section>
+    </div>
+  </n-message-provider>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import type { OutputFormat } from '@shared/types'
 import AiQuickToggles from '@/components/AiQuickToggles.vue'
@@ -44,6 +43,7 @@ import { useAiStore } from '@/stores/ai'
 import { useQueueStore } from '@/stores/queue'
 import { useWhisperStore } from '@/stores/whisper'
 
+const { t } = useI18n()
 const whisperStore = useWhisperStore()
 const queueStore = useQueueStore()
 const aiStore = useAiStore()

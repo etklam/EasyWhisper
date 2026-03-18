@@ -30,7 +30,8 @@
     "queue": {
       "title": "Task Queue",
       "empty": "No tasks yet"
-    }
+    },
+    "outputFormats": "Output Formats"
   },
   "settings": {
     "title": "Settings",

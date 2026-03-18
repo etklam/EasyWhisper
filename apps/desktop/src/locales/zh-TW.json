@@ -30,7 +30,8 @@
     "queue": {
       "title": "任務佇列",
       "empty": "暫無任務"
-    }
+    },
+    "outputFormats": "輸出格式"
   },
   "settings": {
     "title": "設定",
