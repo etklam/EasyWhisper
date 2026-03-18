@@ -1,5 +1,5 @@
 import { app, ipcMain, shell } from 'electron'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { IPC_CHANNELS } from '@shared/ipc'
@@ -26,7 +26,9 @@ export function registerSettingsIpc(): void {
     const outputDir = settingsManager.getSettings().outputDir || getDefaultOutputDir()
     try {
       await mkdir(outputDir, { recursive: true })
-      shell.showItemInFolder(path.join(outputDir, '.keep'))
+      const keepFile = path.join(outputDir, '.keep')
+      await writeFile(keepFile, '', { flag: 'wx' }).catch(() => {})
+      shell.showItemInFolder(keepFile)
       return {
         ok: true,
         path: outputDir
@@ -67,7 +69,8 @@ function toWorkflowSettings(settings: SettingsSchema): WorkflowSettings {
     aiCorrect: settings.ai.tasks.correct,
     aiTranslate: settings.ai.tasks.translate,
     aiSummary: settings.ai.tasks.summary,
-    aiCustomPrompts: settings.ai.customPrompts
+    aiCustomPrompts: settings.ai.customPrompts,
+    locale: settings.locale
   }
 }
 
@@ -107,6 +110,8 @@ function toSettingsPatch(partial: Partial<WorkflowSettings>): Partial<SettingsSc
       ...aiPatch
     }
   }
+
+  if (partial.locale !== undefined) next.locale = partial.locale
 
   return next
 }
