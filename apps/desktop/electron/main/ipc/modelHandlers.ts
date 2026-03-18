@@ -1,8 +1,10 @@
-import { app, ipcMain, type BrowserWindow } from 'electron'
+import { app, ipcMain, shell, type BrowserWindow } from 'electron'
+import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type {
+  OpenFolderResponse,
   WhisperModelDownloadPayload,
   WhisperModelDownloadResponse,
   WhisperModelInfo
@@ -37,6 +39,7 @@ export function registerModelHandlers(mainWindow: BrowserWindow): void {
   if (typeof ipcMain.removeHandler === 'function') {
     ipcMain.removeHandler(IPC_CHANNELS.MODEL_LIST)
     ipcMain.removeHandler(IPC_CHANNELS.MODEL_DOWNLOAD)
+    ipcMain.removeHandler(IPC_CHANNELS.MODEL_OPEN_FOLDER)
   }
 
   ipcMain.handle(IPC_CHANNELS.MODEL_LIST, async (): Promise<WhisperModelInfo[]> => {
@@ -56,4 +59,21 @@ export function registerModelHandlers(mainWindow: BrowserWindow): void {
       }
     }
   )
+
+  ipcMain.handle(IPC_CHANNELS.MODEL_OPEN_FOLDER, async (): Promise<OpenFolderResponse> => {
+    const modelsDir = path.join(app.getPath('userData'), 'models')
+    try {
+      await mkdir(modelsDir, { recursive: true })
+      shell.showItemInFolder(path.join(modelsDir, '.keep'))
+      return {
+        ok: true,
+        path: modelsDir
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
 }

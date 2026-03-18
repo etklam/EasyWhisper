@@ -1,18 +1,42 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain, shell } from 'electron'
+import { mkdir } from 'node:fs/promises'
+import path from 'node:path'
 
 import { IPC_CHANNELS } from '@shared/ipc'
-import type { WorkflowSettings } from '@shared/types'
+import type { OpenFolderResponse, WorkflowSettings } from '@shared/types'
 import type { SettingsSchema } from '@shared/settings.schema'
 import { SettingsManager } from '../settings/SettingsManager'
 
 const settingsManager = new SettingsManager()
 
+function getDefaultOutputDir(): string {
+  return path.join(app.getPath('documents'), 'FOSSWhisper')
+}
+
 export function registerSettingsIpc(): void {
   if (typeof ipcMain.removeHandler === 'function') {
     ipcMain.removeHandler(IPC_CHANNELS.SETTINGS_GET)
+    ipcMain.removeHandler(IPC_CHANNELS.SETTINGS_OPEN_OUTPUT_FOLDER)
   }
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async (): Promise<WorkflowSettings> => {
     return toWorkflowSettings(settingsManager.getSettings())
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_OPEN_OUTPUT_FOLDER, async (): Promise<OpenFolderResponse> => {
+    const outputDir = settingsManager.getSettings().outputDir || getDefaultOutputDir()
+    try {
+      await mkdir(outputDir, { recursive: true })
+      shell.showItemInFolder(path.join(outputDir, '.keep'))
+      return {
+        ok: true,
+        path: outputDir
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
   })
 
   if (typeof ipcMain.removeHandler === 'function') {
