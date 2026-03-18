@@ -1,10 +1,24 @@
 <template>
   <div class="settings-view">
     <n-space vertical :size="16">
+      <!-- Language Settings Card (NEW) -->
+      <n-card>
+        <template #header>
+          <span class="section-title">{{ t('settings.language.title') }}</span>
+        </template>
+        <n-form-item :label="t('settings.language.title')">
+          <n-select
+            v-model:value="currentLocale"
+            :options="localeOptions"
+            @update:value="handleLocaleChange"
+          />
+        </n-form-item>
+      </n-card>
+
       <n-card>
         <template #header>
           <div class="section-header">
-            <span class="section-title">模型设置</span>
+            <span class="section-title">{{ t('settings.model.title') }}</span>
             <n-button
               size="small"
               quaternary
@@ -12,7 +26,7 @@
               data-testid="open-model-folder"
               @click="openModelFolder"
             >
-              打开模型文件夹
+              {{ t('settings.model.openFolder') }}
             </n-button>
           </div>
         </template>
@@ -21,28 +35,28 @@
 
       <n-card>
         <template #header>
-          <span class="section-title">转录设置</span>
+          <span class="section-title">{{ t('settings.transcription.title') }}</span>
         </template>
         <n-form label-placement="top" :model="localSettings">
           <n-grid :cols="2" :x-gap="12" :y-gap="8" responsive="screen" item-responsive>
-            <n-form-item-gi span="2 m:1" label="线程数">
+            <n-form-item-gi span="2 m:1" :label="t('settings.transcription.threads')">
               <n-input-number v-model:value="localSettings.threads" :min="1" :max="16" />
             </n-form-item-gi>
-            <n-form-item-gi span="2 m:1" label="语言">
+            <n-form-item-gi span="2 m:1" :label="t('settings.transcription.language')">
               <n-input v-model:value="localSettings.language" placeholder="auto" />
             </n-form-item-gi>
-            <n-form-item-gi span="2" label="输出目录">
-              <n-input v-model:value="localSettings.outputDir" placeholder="默认使用文稿目录/FOSSWhisper" />
+            <n-form-item-gi span="2" :label="t('settings.transcription.outputDir')">
+              <n-input v-model:value="localSettings.outputDir" :placeholder="t('home.dropZone.title')" />
             </n-form-item-gi>
           </n-grid>
 
           <n-form-item>
             <n-switch v-model:value="localSettings.useMetal" />
-            <n-text class="switch-label">启用 Metal GPU 加速</n-text>
+            <n-text class="switch-label">{{ t('settings.transcription.useMetal') }}</n-text>
           </n-form-item>
 
           <n-button type="primary" data-testid="save-transcription-settings" @click="applyTranscriptionSettings">
-            保存转录设置
+            {{ t('settings.transcription.save') }}
           </n-button>
         </n-form>
       </n-card>
@@ -50,7 +64,7 @@
       <n-card>
         <template #header>
           <div class="section-header">
-            <span class="section-title">下载设置</span>
+            <span class="section-title">{{ t('settings.download.title') }}</span>
             <n-button
               size="small"
               quaternary
@@ -58,19 +72,19 @@
               data-testid="open-output-folder"
               @click="openOutputFolder"
             >
-              打开输出文件夹
+              {{ t('settings.download.openOutputFolder') }}
             </n-button>
           </div>
         </template>
         <n-form label-placement="top" :model="localSettings">
-          <n-form-item label="yt-dlp 音频格式">
+          <n-form-item :label="t('settings.download.audioFormat')">
             <n-input v-model:value="localSettings.ytdlpAudioFormat" placeholder="mp3 / wav / m4a" />
           </n-form-item>
-          <n-form-item label="yt-dlp Cookies 路径">
-            <n-input v-model:value="localSettings.ytdlpCookiesPath" placeholder="可选 cookies.txt 路径" />
+          <n-form-item :label="t('settings.download.cookiesPath')">
+            <n-input v-model:value="localSettings.ytdlpCookiesPath" :placeholder="t('settings.download.cookiesPlaceholder')" />
           </n-form-item>
           <n-button type="primary" data-testid="save-download-settings" @click="applyDownloadSettings">
-            保存下载设置
+            {{ t('settings.download.save') }}
           </n-button>
         </n-form>
       </n-card>
@@ -79,17 +93,27 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useMessage } from 'naive-ui'
-
+import { useI18n } from 'vue-i18n'
 import type { WorkflowSettings } from '@shared/types'
 import ModelSelector from '@/components/ModelSelector.vue'
 import { useWhisperStore } from '@/stores/whisper'
+import { useLocale } from '@/composables/useLocale'
 
 const whisperStore = useWhisperStore()
+const { t } = useI18n()
+const { setLocale } = useLocale()
 const message = useMessage()
 
 const localSettings = reactive({ ...whisperStore.settings })
+const currentLocale = ref(whisperStore.settings.locale || 'en')
+
+const localeOptions = [
+  { label: 'English', value: 'en' },
+  { label: '简体中文', value: 'zh-CN' },
+  { label: '繁體中文', value: 'zh-TW' }
+]
 
 watch(
   () => whisperStore.settings,
@@ -99,16 +123,20 @@ watch(
   { deep: true }
 )
 
+async function handleLocaleChange(value: string) {
+  await setLocale(value as 'en' | 'zh-CN' | 'zh-TW')
+}
+
 async function openModelFolder() {
   try {
     const result = await window.fosswhisper.openModelFolder()
     if (result.ok) {
-      message.success('已打开模型文件夹')
+      message.success(t('settings.messages.folderOpened'))
     } else {
-      message.error(`打开文件夹失败: ${result.error}`)
+      message.error(t('settings.messages.openFolderFailed', { error: result.error }))
     }
   } catch (error) {
-    message.error(`打开文件夹失败: ${error instanceof Error ? error.message : String(error)}`)
+    message.error(t('settings.messages.openFolderFailed', { error: error instanceof Error ? error.message : String(error) }))
   }
 }
 
@@ -116,12 +144,12 @@ async function openOutputFolder() {
   try {
     const result = await window.fosswhisper.openOutputFolder()
     if (result.ok) {
-      message.success('已打开输出文件夹')
+      message.success(t('settings.messages.folderOpened'))
     } else {
-      message.error(`打开文件夹失败: ${result.error}`)
+      message.error(t('settings.messages.openFolderFailed', { error: result.error }))
     }
   } catch (error) {
-    message.error(`打开文件夹失败: ${error instanceof Error ? error.message : String(error)}`)
+    message.error(t('settings.messages.openFolderFailed', { error: error instanceof Error ? error.message : String(error) }))
   }
 }
 
@@ -133,9 +161,9 @@ async function applyTranscriptionSettings() {
       useMetal: localSettings.useMetal,
       outputDir: localSettings.outputDir
     })
-    message.success('转录设置已保存')
+    message.success(t('settings.transcription.saved'))
   } catch {
-    message.error('保存失败，请重试')
+    message.error(t('settings.transcription.saveFailed'))
   }
 }
 
@@ -145,9 +173,9 @@ async function applyDownloadSettings() {
       ytdlpAudioFormat: localSettings.ytdlpAudioFormat,
       ytdlpCookiesPath: localSettings.ytdlpCookiesPath
     })
-    message.success('下载设置已保存')
+    message.success(t('settings.download.saved'))
   } catch {
-    message.error('保存失败，请重试')
+    message.error(t('settings.download.saveFailed'))
   }
 }
 </script>
