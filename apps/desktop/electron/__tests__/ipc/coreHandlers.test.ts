@@ -64,7 +64,7 @@ vi.mock('../../main/output/OutputFormatter', () => ({
   }))
 }))
 
-import { BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow, app, ipcMain } from 'electron'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { registerAudioHandlers } from '../../main/ipc/audioHandlers'
 import { registerModelHandlers } from '../../main/ipc/modelHandlers'
@@ -134,6 +134,17 @@ describe('Core IPC handlers', () => {
     })
   })
 
+  it('registers model handlers with app userData path', async () => {
+    listModelsMock.mockResolvedValue([])
+
+    registerModelHandlers(mainWindow)
+
+    const listHandler = getHandler('model:list')
+    await listHandler({}, undefined)
+
+    expect(app.getPath).toHaveBeenCalledWith('userData')
+  })
+
   it('registers and runs model handlers', async () => {
     listModelsMock.mockResolvedValue([
       {
@@ -171,6 +182,7 @@ describe('Core IPC handlers', () => {
       totalBytes: 100
     })
   })
+
 
   it('registers and runs output handlers', async () => {
     formatMock.mockReturnValue('hello')

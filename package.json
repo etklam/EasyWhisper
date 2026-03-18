@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @fosswhisper/desktop dev",
     "build": "pnpm -r build",
+    "package:mac": "pnpm --filter @fosswhisper/desktop package:mac",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:run": "pnpm -r test:run",

@@ -11,7 +11,7 @@ import {
 } from 'node:fs/promises'
 import { get } from 'node:https'
 import path from 'node:path'
-import { cpus } from 'node:os'
+import { cpus, homedir } from 'node:os'
 import { spawn } from 'node:child_process'
 
 import type {
@@ -52,8 +52,25 @@ export class WhisperMac {
 
   constructor(options: WhisperMacOptions = {}) {
     this.projectRoot = options.projectRoot ?? process.cwd()
-    this.modelsDir = options.modelsDir ?? path.resolve(this.projectRoot, 'models')
+
+    const resolvedProjectRoot = path.resolve(this.projectRoot)
+    const isFilesystemRoot = resolvedProjectRoot === path.parse(resolvedProjectRoot).root
+    const modelsBaseDir = isFilesystemRoot
+      ? path.join(process.env.HOME ?? homedir(), '.fosswhisper')
+      : this.projectRoot
+
+    this.modelsDir = options.modelsDir ?? path.resolve(modelsBaseDir, 'models')
     this.whisperDir = options.whisperDir ?? path.resolve(this.projectRoot, 'whisper')
+
+    if (process.env.FOSSWHISPER_DEBUG_PATHS === '1') {
+      console.error('[fosswhisper:WhisperMac] constructor', {
+        cwd: process.cwd(),
+        projectRoot: this.projectRoot,
+        resolvedProjectRoot,
+        modelsDir: this.modelsDir,
+        whisperDir: this.whisperDir
+      })
+    }
   }
 
   async transcribe(options: TranscribeOptions): Promise<WhisperCompleteEvent> {
@@ -132,6 +149,12 @@ export class WhisperMac {
   }
 
   async listModels(): Promise<WhisperModelInfo[]> {
+    if (process.env.FOSSWHISPER_DEBUG_PATHS === '1') {
+      console.error('[fosswhisper:WhisperMac] listModels', {
+        modelsDir: this.modelsDir
+      })
+    }
+
     await mkdir(this.modelsDir, { recursive: true })
 
     return Promise.all(
@@ -166,6 +189,15 @@ export class WhisperMac {
     modelId: WhisperModelId,
     onProgress?: (event: WhisperModelDownloadProgressEvent) => void
   ): Promise<string> {
+    if (process.env.FOSSWHISPER_DEBUG_PATHS === '1') {
+      console.error('[fosswhisper:WhisperMac] downloadModel:start', {
+        cwd: process.cwd(),
+        modelId,
+        modelsDir: this.modelsDir,
+        targetPath: path.join(this.modelsDir, modelId)
+      })
+    }
+
     await mkdir(this.modelsDir, { recursive: true })
 
     const targetPath = path.join(this.modelsDir, modelId)

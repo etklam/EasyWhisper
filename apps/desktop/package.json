@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "FOSSWhisper desktop app",
+  "author": "FOSSWhisper",
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "package:mac:dir": "pnpm run build && electron-builder --mac dir",
+    "package:mac": "pnpm run build && electron-builder --mac dir dmg",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest",
     "test:run": "vitest run"
@@ -26,11 +30,35 @@
     "@vitest/ui": "^3.0.8",
     "@vue/test-utils": "^2.4.6",
     "electron": "^35.0.2",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^3.1.0",
     "happy-dom": "^17.1.7",
     "typescript": "^5.8.2",
     "vite": "^6.2.0",
     "vitest": "^3.0.8",
     "vue-tsc": "^2.2.8"
+  },
+  "build": {
+    "appId": "com.fosswhisper.desktop",
+    "productName": "FOSSWhisper",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dir",
+        "dmg"
+      ]
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
   }
 }

@@ -12,6 +12,9 @@ vi.mock('node:crypto', async (importOriginal) => {
 import { ipcMain, BrowserWindow } from 'electron'
 
 vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp')
+  },
   ipcMain: {
     handle: vi.fn()
   },
