@@ -1,4 +1,8 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { WhisperMac } from '../../main/whisper/WhisperMac'
 
 vi.mock('node:os', async (importOriginal) => {
@@ -15,30 +19,37 @@ Object.defineProperty(process, 'resourcesPath', {
   writable: true
 })
 
-beforeEach(() => {
+let tempRoot: string
+let modelPath: string
+
+beforeEach(async () => {
+  tempRoot = await mkdtemp(path.join(tmpdir(), 'fosswhisper-whisper-'))
+  modelPath = path.join(tempRoot, 'models', 'ggml-base.bin')
+  await mkdir(path.dirname(modelPath), { recursive: true })
+  await writeFile(modelPath, 'model', 'utf8')
   vi.stubEnv('WHISPER_CLI_PATH', '/mock/whisper-cli')
 })
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
 describe('WhisperMac', () => {
   it('should be instantiable', () => {
-    const whisperMac = new WhisperMac()
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
     expect(whisperMac).toBeDefined()
   })
 
   it('should use mock mode when CLI not found', async () => {
     vi.unstubAllEnvs()
-    const whisperMac = new WhisperMac()
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
 
     const onProgress = vi.fn()
     const result = await whisperMac.transcribe({
       taskId: 'task-123',
       audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
+      modelPath,
       onProgress
     })
 
@@ -49,13 +60,13 @@ describe('WhisperMac', () => {
 
   it('should use auto language when not specified', async () => {
     vi.unstubAllEnvs()
-    const whisperMac = new WhisperMac()
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
 
     const onProgress = vi.fn()
     await whisperMac.transcribe({
       taskId: 'task-123',
       audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
+      modelPath,
       onProgress
     })
 
@@ -65,18 +76,37 @@ describe('WhisperMac', () => {
 
   it('should handle transcribe with Metal disabled', async () => {
     vi.unstubAllEnvs()
-    const whisperMac = new WhisperMac()
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
 
     const onProgress = vi.fn()
     await whisperMac.transcribe({
       taskId: 'task-123',
       audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
+      modelPath,
       useMetal: false,
       onProgress
     })
 
     // Mock mode always succeeds
     expect(onProgress).toHaveBeenCalled()
+  })
+
+  it('should list supported models from the managed models directory', async () => {
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
+
+    const models = await whisperMac.listModels()
+
+    expect(models).toHaveLength(4)
+    expect(models.find((model) => model.id === 'ggml-base.bin')).toEqual(
+      expect.objectContaining({
+        downloaded: true,
+        path: modelPath
+      })
+    )
+    expect(models.find((model) => model.id === 'ggml-small.bin')).toEqual(
+      expect.objectContaining({
+        downloaded: false
+      })
+    )
   })
 })

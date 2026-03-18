@@ -4,6 +4,8 @@ import path from 'node:path'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type {
+  YtDlpCancelPayload,
+  YtDlpCancelResponse,
   YtDlpCompleteEvent,
   YtDlpErrorEvent,
   YtDlpProgressEvent,
@@ -18,12 +20,14 @@ function createDownloader(): YtDlpDownloader {
   return new YtDlpDownloader(ytDlpPath, tmpDir)
 }
 
-export function registerYtDlpIpc(mainWindow: BrowserWindow): void {
+export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
   const downloader = createDownloader()
 
   if (typeof ipcMain.removeHandler === 'function') {
     ipcMain.removeHandler(IPC_CHANNELS.YTDLP_DOWNLOAD)
+    ipcMain.removeHandler(IPC_CHANNELS.YTDLP_CANCEL)
   }
+
   ipcMain.handle(
     IPC_CHANNELS.YTDLP_DOWNLOAD,
     async (_event, payload: YtDlpStartPayload): Promise<YtDlpStartResponse> => {
@@ -36,7 +40,7 @@ export function registerYtDlpIpc(mainWindow: BrowserWindow): void {
           onProgress: (progress: number) => {
             const event: YtDlpProgressEvent = {
               taskId,
-              progress
+              progress: Math.max(0, Math.min(100, progress))
             }
             mainWindow.webContents.send(IPC_CHANNELS.YTDLP_PROGRESS, event)
           }
@@ -59,6 +63,16 @@ export function registerYtDlpIpc(mainWindow: BrowserWindow): void {
       return {
         taskId,
         accepted: true
+      }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.YTDLP_CANCEL,
+    async (_event, payload: YtDlpCancelPayload): Promise<YtDlpCancelResponse> => {
+      return {
+        taskId: payload.taskId,
+        cancelled: downloader.cancelDownload(payload.taskId)
       }
     }
   )

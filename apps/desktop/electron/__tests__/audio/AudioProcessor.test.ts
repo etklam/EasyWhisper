@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { AudioProcessor } from '../AudioProcessor'
-import { spawn } from 'child_process'
+import { spawn } from 'node:child_process'
 import { access, mkdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -26,7 +26,12 @@ describe('AudioProcessor', () => {
       const inputFile = '/path/to/audio.mp3'
       const outputFile = '/tmp/cache/audio-abc123.wav'
 
-      vi.mocked(access).mockResolvedValue(undefined)
+      vi.mocked(access).mockImplementation((filePath: string) => {
+        if (filePath === inputFile) {
+          return Promise.resolve(undefined)
+        }
+        return Promise.reject(new Error('Not found'))
+      })
       vi.mocked(mkdir).mockResolvedValue(undefined)
 
       const mockSpawn = vi.mocked(spawn).mockReturnValue({
@@ -45,7 +50,10 @@ describe('AudioProcessor', () => {
       expect(mockSpawn).toHaveBeenCalledWith(
         mockFfmpegPath,
         [
+          '-y',
           '-i', inputFile,
+          '-vn',
+          '-acodec', 'pcm_s16le',
           '-ar', '16000',
           '-ac', '1',
           '-f', 'wav',
@@ -58,7 +66,12 @@ describe('AudioProcessor', () => {
       const inputFile = '/path/to/video.mp4'
       const outputFile = '/tmp/cache/video-abc123.wav'
 
-      vi.mocked(access).mockResolvedValue(undefined)
+      vi.mocked(access).mockImplementation((filePath: string) => {
+        if (filePath === inputFile) {
+          return Promise.resolve(undefined)
+        }
+        return Promise.reject(new Error('Not found'))
+      })
       vi.mocked(mkdir).mockResolvedValue(undefined)
 
       const mockSpawn = vi.mocked(spawn).mockReturnValue({
@@ -77,7 +90,10 @@ describe('AudioProcessor', () => {
       expect(mockSpawn).toHaveBeenCalledWith(
         mockFfmpegPath,
         expect.arrayContaining([
+          '-y',
           '-i', inputFile,
+          '-vn',
+          '-acodec', 'pcm_s16le',
           '-ar', '16000',
           '-ac', '1',
           '-f', 'wav'
@@ -112,7 +128,12 @@ describe('AudioProcessor', () => {
       const inputFile = '/path/to/audio.mp3'
       const outputFile = '/tmp/cache/audio-abc123.wav'
 
-      vi.mocked(access).mockResolvedValue(undefined)
+      vi.mocked(access).mockImplementation((filePath: string) => {
+        if (filePath === inputFile) {
+          return Promise.resolve(undefined)
+        }
+        return Promise.reject(new Error('Not found'))
+      })
       vi.mocked(mkdir).mockResolvedValue(undefined)
 
       vi.mocked(spawn).mockReturnValue({
@@ -202,7 +223,12 @@ describe('AudioProcessor', () => {
       const inputFile = '/path/to/audio.mp3'
       const outputFile = '/tmp/cache/audio-abc123.wav'
 
-      vi.mocked(access).mockResolvedValue(undefined)
+      vi.mocked(access).mockImplementation((filePath: string) => {
+        if (filePath === inputFile) {
+          return Promise.resolve(undefined)
+        }
+        return Promise.reject(new Error('Not found'))
+      })
       vi.mocked(mkdir).mockResolvedValue(undefined)
 
       const mockSpawn = vi.mocked(spawn).mockReturnValue({

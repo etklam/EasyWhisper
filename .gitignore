@@ -28,6 +28,10 @@ release/
 
 # Models (too large for git)
 resources/models/*.bin
+models/
+
+# Local whisper.cpp checkout/build
+whisper/
 
 # Temp files
 *.log

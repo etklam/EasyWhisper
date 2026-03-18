@@ -1,8 +1,9 @@
-import { spawn } from 'child_process'
+import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { randomUUID } from 'node:crypto'
 import { readFile, unlink } from 'node:fs/promises'
 import path from 'node:path'
 
+import { parseUrlList } from '@shared/url'
 import { YTDLP_AUDIO_FORMATS } from '../constants'
 import { createLineBuffer } from '../utils/lineBuffer'
 
@@ -18,12 +19,14 @@ interface YtDlpPathReadError {
 }
 
 export class YtDlpDownloader {
+  private readonly activeDownloads = new Map<string, ChildProcessWithoutNullStreams>()
+
   constructor(
     private readonly ytDlpPath: string,
     private readonly tmpDir: string
   ) {}
 
-  async downloadAudio(url: string, options: DownloadOptions = {}): Promise<string> {
+  async downloadAudio(taskId: string, url: string, options: DownloadOptions = {}): Promise<string> {
     const format = options.format ?? 'mp3'
     const outputTemplate = path.join(this.tmpDir, '%(title)s.%(ext)s')
     const pathFile = path.join(this.tmpDir, `ytdlp-path-${randomUUID()}.txt`)
@@ -49,7 +52,9 @@ export class YtDlpDownloader {
 
     await new Promise<void>((resolve, reject) => {
       const proc = spawn(this.ytDlpPath, args)
+      this.activeDownloads.set(taskId, proc)
       let stderr = ''
+      let cancelled = false
 
       const parseLine = createLineBuffer((line) => {
         const match = line.match(/\[download\]\s+([\d.]+)%/)
@@ -64,8 +69,16 @@ export class YtDlpDownloader {
       proc.stderr.on('data', (chunk: Buffer) => {
         stderr += chunk.toString('utf8')
       })
-      proc.on('error', reject)
+      proc.on('error', (error) => {
+        this.activeDownloads.delete(taskId)
+        reject(error)
+      })
       proc.on('close', (code) => {
+        this.activeDownloads.delete(taskId)
+        if (cancelled) {
+          reject(new Error('Download cancelled'))
+          return
+        }
         if (code === 0) {
           resolve()
           return
@@ -76,6 +89,12 @@ export class YtDlpDownloader {
           baseError.message = `${baseError.message}: ${stderr.trim()}`
         }
         reject(baseError)
+      })
+
+      proc.once('exit', (_code, signal) => {
+        if (signal === 'SIGTERM' || signal === 'SIGINT') {
+          cancelled = true
+        }
       })
     })
 
@@ -99,11 +118,14 @@ export class YtDlpDownloader {
   parseUrlList(raw: string): string[] {
     return parseUrlList(raw)
   }
-}
 
-export function parseUrlList(raw: string): string[] {
-  return raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('#'))
+  cancelDownload(taskId: string): boolean {
+    const proc = this.activeDownloads.get(taskId)
+    if (!proc) {
+      return false
+    }
+
+    return proc.kill('SIGTERM')
+  }
 }
+export { parseUrlList }

@@ -6,12 +6,16 @@ import type { WhisperProgressEvent, WhisperCompleteEvent, WhisperErrorEvent } fr
 // Mock window.fosswhisper
 const mockStartWhisper = vi.fn().mockResolvedValue({ taskId: 'test-123', accepted: true })
 const mockStartYtDlp = vi.fn().mockResolvedValue({ taskId: 'test-123', accepted: true })
+const mockListModels = vi.fn().mockResolvedValue([])
+const mockGetOutputFormats = vi.fn().mockResolvedValue(['txt', 'srt', 'vtt', 'json'])
+const mockDownloadModel = vi.fn()
 const mockGetSettings = vi.fn().mockResolvedValue({
   modelPath: '/path/to/models/ggml-base.bin',
   threads: 4,
   language: 'auto',
   useMetal: true,
   outputDir: '',
+  outputFormats: ['txt', 'srt'],
   ytdlpAudioFormat: 'mp3',
   ytdlpCookiesPath: '',
   aiEnabled: false,
@@ -33,11 +37,15 @@ const mockUnsubscribeError = vi.fn()
 const mockUnsubscribeYtDlpProgress = vi.fn()
 const mockUnsubscribeYtDlpComplete = vi.fn()
 const mockUnsubscribeYtDlpError = vi.fn()
+const mockUnsubscribeModelProgress = vi.fn()
 
 Object.defineProperty(window, 'fosswhisper', {
   value: {
     startWhisper: mockStartWhisper,
     startYtDlp: mockStartYtDlp,
+    listModels: mockListModels,
+    downloadModel: mockDownloadModel,
+    getOutputFormats: mockGetOutputFormats,
     getSettings: mockGetSettings,
     setSettings: mockSetSettings,
     listAiModels: mockListAiModels,
@@ -47,7 +55,8 @@ Object.defineProperty(window, 'fosswhisper', {
     onWhisperError: vi.fn(() => mockUnsubscribeError),
     onYtDlpProgress: vi.fn(() => mockUnsubscribeYtDlpProgress),
     onYtDlpComplete: vi.fn(() => mockUnsubscribeYtDlpComplete),
-    onYtDlpError: vi.fn(() => mockUnsubscribeYtDlpError)
+    onYtDlpError: vi.fn(() => mockUnsubscribeYtDlpError),
+    onModelProgress: vi.fn(() => mockUnsubscribeModelProgress)
   },
   writable: true
 })
@@ -65,6 +74,7 @@ describe('WhisperStore', () => {
     expect(store.settings.threads).toBe(4)
     expect(store.settings.language).toBe('auto')
     expect(store.settings.useMetal).toBe(true)
+    expect(store.settings.outputFormats).toEqual(['txt', 'srt'])
     expect(store.settings.ytdlpAudioFormat).toBe('mp3')
     expect(store.tasks).toHaveLength(0)
   })
@@ -117,6 +127,8 @@ describe('WhisperStore', () => {
 
     expect(mockGetSettings).toHaveBeenCalled()
     expect(mockListAiModels).toHaveBeenCalled()
+    expect(mockListModels).toHaveBeenCalled()
+    expect(mockGetOutputFormats).toHaveBeenCalled()
     expect(store.initialized).toBe(true)
     expect(store.aiModels).toEqual(['llama3.1'])
   })

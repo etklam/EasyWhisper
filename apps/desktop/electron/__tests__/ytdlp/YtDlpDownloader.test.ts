@@ -105,7 +105,7 @@ https://youtu.be/456`
       } as any)
 
       const onProgress = vi.fn()
-      const result = await downloader.downloadAudio(url, { onProgress })
+      const result = await downloader.downloadAudio('task-123', url, { onProgress })
 
       expect(result).toBe(outputPath)
       expect(spawn).toHaveBeenCalledWith(
@@ -142,7 +142,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await downloader.downloadAudio(url, { format: 'wav' })
+      await downloader.downloadAudio('task-123', url, { format: 'wav' })
 
       expect(spawn).toHaveBeenCalledWith(
         mockYtDlpPath,
@@ -168,7 +168,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await downloader.downloadAudio(url, { cookiesPath })
+      await downloader.downloadAudio('task-123', url, { cookiesPath })
 
       expect(spawn).toHaveBeenCalledWith(
         mockYtDlpPath,
@@ -205,7 +205,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await downloader.downloadAudio(url, { onProgress })
+      await downloader.downloadAudio('task-123', url, { onProgress })
 
       expect(onProgress).toHaveBeenCalledTimes(4)
       expect(progressUpdates).toEqual([25.0, 50.0, 75.0, 100.0])
@@ -230,7 +230,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await expect(downloader.downloadAudio(url))
+      await expect(downloader.downloadAudio('task-123', url))
         .rejects.toThrow('yt-dlp exited with code 1')
     })
 
@@ -249,7 +249,7 @@ https://youtu.be/456`
 
       vi.mocked(readFile).mockRejectedValue(new Error('Read failed'))
 
-      await expect(downloader.downloadAudio(url))
+      await expect(downloader.downloadAudio('task-123', url))
         .rejects.toMatchObject({
           code: 'YTDLP_PATH_READ_FAILED'
         })
@@ -271,7 +271,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await downloader.downloadAudio(url)
+      await downloader.downloadAudio('task-123', url)
 
       expect(unlink).toHaveBeenCalledWith(pathFile)
     })
@@ -301,7 +301,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await downloader.downloadAudio(url, { onProgress })
+      await downloader.downloadAudio('task-123', url, { onProgress })
 
       expect(onProgress).toHaveBeenCalledWith(50.0)
     })
@@ -332,7 +332,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await downloader.downloadAudio(url, { onProgress })
+      await downloader.downloadAudio('task-123', url, { onProgress })
 
       expect(progressUpdates).toEqual([10.5, 99.9, 100])
     })
@@ -358,7 +358,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await expect(downloader.downloadAudio(url))
+      await expect(downloader.downloadAudio('task-123', url))
         .rejects.toThrow('yt-dlp exited with code 1')
     })
 
@@ -381,7 +381,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      await expect(downloader.downloadAudio(url))
+      await expect(downloader.downloadAudio('task-123', url))
         .rejects.toThrow()
     })
   })
@@ -402,7 +402,7 @@ https://youtu.be/456`
         })
       } as any)
 
-      const outputPath = await downloader.downloadAudio(url)
+      const outputPath = await downloader.downloadAudio('task-123', url)
 
       const title = path.basename(outputPath, '.mp3')
       expect(title).toBe('My Video Title')

@@ -4,20 +4,32 @@
       <div class="layout">
         <header class="header">
           <h1>FOSSWhisper</h1>
-          <p>Mac local transcription with whisper.cpp + Metal</p>
+          <p>本机转录工作台：下载、转 WAV、Whisper 转录与输出格式管理</p>
         </header>
 
         <section class="main-grid">
           <div class="left-column">
-            <DropZone @files="handleFiles" />
-            <UrlImportPanel @submit="handleUrls" />
-            <TaskQueue :tasks="store.tasks" />
+            <DropZone />
+            <UrlInput />
+            <QueueTable />
           </div>
-          <SettingsPanel
-            :settings="store.settings"
-            :ai-models="store.aiModels"
-            @apply="store.updateSettings"
-          />
+          <div class="right-column">
+            <ModelSelector />
+            <AiPanel />
+            <n-card title="输出格式">
+              <n-checkbox-group
+                :value="whisperStore.settings.outputFormats"
+                @update:value="handleOutputFormatsChange"
+              >
+                <n-space vertical>
+                  <n-checkbox v-for="format in whisperStore.outputFormats" :key="format" :value="format">
+                    {{ format.toUpperCase() }}
+                  </n-checkbox>
+                </n-space>
+              </n-checkbox-group>
+            </n-card>
+            <SettingsPanel :settings="whisperStore.settings" @apply="whisperStore.updateSettings" />
+          </div>
         </section>
       </div>
     </n-message-provider>
@@ -27,35 +39,44 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue'
 
+import type { OutputFormat } from '@shared/types'
+import AiPanel from '@/components/AiPanel.vue'
 import DropZone from '@/components/DropZone.vue'
+import ModelSelector from '@/components/ModelSelector.vue'
+import QueueTable from '@/components/QueueTable.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
-import TaskQueue from '@/components/TaskQueue.vue'
-import UrlImportPanel from '@/components/UrlImportPanel.vue'
+import UrlInput from '@/components/UrlInput.vue'
+import { useAiStore } from '@/stores/ai'
+import { useQueueStore } from '@/stores/queue'
 import { useWhisperStore } from '@/stores/whisper'
 
-const store = useWhisperStore()
+const whisperStore = useWhisperStore()
+const queueStore = useQueueStore()
+const aiStore = useAiStore()
 
 onMounted(async () => {
-  store.bindIpcListeners()
-  await store.initialize()
+  queueStore.bindIpcListeners()
+  whisperStore.bindIpcListeners()
+  aiStore.bindIpcListeners()
+  await whisperStore.initialize()
+  await aiStore.initialize()
 })
 
 onBeforeUnmount(() => {
-  store.reset()
+  queueStore.reset()
+  whisperStore.reset()
+  aiStore.reset()
 })
 
-async function handleFiles(paths: string[]) {
-  if (paths.length === 0) {
+function handleOutputFormatsChange(formats: string[]) {
+  const nextFormats = formats as OutputFormat[]
+  if (nextFormats.length === 0) {
     return
   }
-  await store.enqueueFiles(paths)
-}
 
-async function handleUrls(value: string) {
-  if (value.trim().length === 0) {
-    return
-  }
-  await store.enqueueUrls(value)
+  void whisperStore.updateSettings({
+    outputFormats: nextFormats
+  })
 }
 </script>
 
@@ -85,6 +106,11 @@ async function handleUrls(value: string) {
 }
 
 .left-column {
+  display: grid;
+  gap: 16px;
+}
+
+.right-column {
   display: grid;
   gap: 16px;
 }

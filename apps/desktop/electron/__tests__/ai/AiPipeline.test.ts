@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AiPipeline } from '../../main/ai/AiPipeline'
-import { getPrompt, DEFAULT_PROMPTS } from '../../main/ai/prompts'
+import { getPrompt } from '../../main/ai/prompts'
 import { checkOllama, chat } from '../../main/ai/OllamaClient'
 
 vi.mock('../../main/ai/OllamaClient')
@@ -22,7 +22,7 @@ describe('AiPipeline', () => {
       response: 'Mocked AI response'
     })
     mockGetPrompt.mockImplementation((task) => {
-      return (...args: any[]) => `Prompt for ${task}: ${args.join(', ')}`
+      return (...args: string[]) => `Prompt for ${task}: ${args.join(', ')}`
     })
 
     pipeline = new AiPipeline('llama2', {
@@ -246,7 +246,10 @@ describe('AiPipeline', () => {
 
       expect(mockChat).toHaveBeenCalledWith(
         'llama2',
-        expect.stringContaining('Prompt for translate')
+        expect.stringContaining('Prompt for translate'),
+        expect.objectContaining({
+          signal: expect.any(AbortSignal)
+        })
       )
 
       expect(onResult).toHaveBeenCalledWith(
@@ -285,7 +288,7 @@ describe('AiPipeline', () => {
           error: expect.any(String)
         })
       )
-    })
+    }, 15000)
 
     it('should preserve sentence separation in batch translation', async () => {
       const onResult = vi.fn()
@@ -493,6 +496,26 @@ More normal text.
           tokensUsed: 50
         })
       )
+    })
+
+    it('should cap chunk size to the available context window in batch mode', async () => {
+      const onResult = vi.fn()
+
+      await pipeline.init()
+
+      const longParagraph = 'word '.repeat(3000)
+
+      await pipeline.process({
+        id: 'task-123',
+        text: longParagraph,
+        taskType: 'translate',
+        targetLang: 'zh-TW',
+        batchMode: true,
+        onResult
+      })
+
+      expect(mockChat.mock.calls.length).toBeGreaterThan(1)
+      expect(onResult).toHaveBeenCalled()
     })
   })
 

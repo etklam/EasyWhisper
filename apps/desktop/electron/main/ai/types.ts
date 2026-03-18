@@ -25,6 +25,7 @@ export interface AiSettings {
 
 export interface AiTask extends AiRunPayload {
   id: string
+  signal?: AbortSignal
   onProgress?: (progress: AiProgressEvent) => void
   onResult?: (result: AiRunResult) => void
 }

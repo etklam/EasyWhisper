@@ -30,7 +30,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    root: path.resolve(__dirname, 'src'),
     build: {
+      outDir: path.resolve(__dirname, 'dist'),
       rollupOptions: {
         input: path.resolve(__dirname, 'src/index.html')
       }

@@ -96,10 +96,15 @@ export class AiPipeline {
 
   private async processTask(task: AiTask): Promise<AiRunResult> {
     const promptFn = getPrompt(task.taskType, task.customPrompts)
+    const availableContextWindow = Math.max(1, this.options.contextWindow - this.options.outputTokenBudget)
+    const effectiveChunkSize =
+      task.batchMode === false
+        ? task.chunkSize ?? this.options.chunkSize
+        : Math.min(task.chunkSize ?? this.options.chunkSize, availableContextWindow)
     const chunks = this.splitText(task.text, {
-      batchSize: task.batchMode ? this.options.contextWindow : Infinity,
+      batchSize: task.batchMode ? availableContextWindow : Infinity,
       batchMode: task.batchMode ?? false,
-      chunkSize: task.chunkSize ?? this.options.chunkSize
+      chunkSize: effectiveChunkSize
     })
 
     const results: string[] = []
@@ -112,8 +117,9 @@ export class AiPipeline {
       const context = this.buildContext(chunks, index, task.taskType)
       const prompt = this.buildPrompt(task, promptFn, context, chunks[index])
       const response = await this.runWithTimeout(
-        chat(this.model, prompt),
-        task.timeout ?? this.options.timeout
+        (signal) => chat(this.model, prompt, { signal }),
+        task.timeout ?? this.options.timeout,
+        task.signal
       )
 
       results.push(response.response)
@@ -133,7 +139,7 @@ export class AiPipeline {
     return {
       taskId: task.id,
       taskType: task.taskType,
-      progress: ((index + 1) / totalChunks) * 100,
+      progress: Math.max(0, Math.min(100, Math.round((index / totalChunks) * 100))),
       currentChunk: index + 1,
       totalChunks
     }
@@ -167,19 +173,33 @@ export class AiPipeline {
     const chunks: string[] = []
     let currentChunk = ''
     let currentTokens = 0
-    const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text]
 
-    for (const sentence of sentences) {
-      const sentenceTokens = this.estimateTokens(sentence)
-      if (currentChunk && currentTokens + sentenceTokens > options.chunkSize) {
-        chunks.push(currentChunk.trim())
-        currentChunk = sentence
-        currentTokens = sentenceTokens
+    for (const paragraph of splitParagraphs(text)) {
+      const paragraphTokens = this.estimateTokens(paragraph)
+
+      if (paragraphTokens <= options.chunkSize) {
+        const separator = currentChunk ? '\n\n' : ''
+        if (currentChunk && currentTokens + paragraphTokens > options.chunkSize) {
+          chunks.push(currentChunk.trim())
+          currentChunk = paragraph
+          currentTokens = paragraphTokens
+          continue
+        }
+
+        currentChunk = `${currentChunk}${separator}${paragraph}`.trim()
+        currentTokens += paragraphTokens
         continue
       }
 
-      currentChunk += `${currentChunk ? ' ' : ''}${sentence}`.trimEnd()
-      currentTokens += sentenceTokens
+      if (currentChunk) {
+        chunks.push(currentChunk.trim())
+        currentChunk = ''
+        currentTokens = 0
+      }
+
+      for (const sentenceChunk of this.splitParagraphBySentences(paragraph, options.chunkSize)) {
+        chunks.push(sentenceChunk)
+      }
     }
 
     if (currentChunk) {
@@ -195,13 +215,13 @@ export class AiPipeline {
     }
 
     const previousChunk = chunks[currentIndex - 1]
-    const sentences = previousChunk.match(/[^.!?]+[.!?]+/g) || []
+    const sentences = extractSentences(previousChunk)
     const contextSentences = sentences.slice(-3).join(' ')
     if (!contextSentences) {
       return ''
     }
 
-    return `Previous context: ${contextSentences}\n\n`
+    return `Previous context (continue consistently with these last 2-3 sentences): ${contextSentences}\n\n`
   }
 
   private aggregateResults(results: string[]): string {
@@ -213,16 +233,107 @@ export class AiPipeline {
   }
 
   private estimateTokens(text: string): number {
-    return Math.ceil(text.length * 0.3)
+    const normalized = text.trim()
+    if (!normalized) {
+      return 0
+    }
+
+    const cjkMatches = normalized.match(/[\u3400-\u9fff\uf900-\ufaff]/g) ?? []
+    const latinLength = normalized.length - cjkMatches.length
+    return Math.ceil(cjkMatches.length + latinLength / 4)
   }
 
-  private async runWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(() => reject(new Error('AI task timeout')), timeoutMs)
+  private splitParagraphBySentences(paragraph: string, chunkSize: number): string[] {
+    const chunks: string[] = []
+    let current = ''
+    let currentTokens = 0
+
+    for (const sentence of extractSentences(paragraph)) {
+      const sentenceTokens = this.estimateTokens(sentence)
+
+      if (sentenceTokens > chunkSize) {
+        if (current) {
+          chunks.push(current.trim())
+          current = ''
+          currentTokens = 0
+        }
+
+        for (const hardChunk of this.splitOversizedSentence(sentence, chunkSize)) {
+          chunks.push(hardChunk)
+        }
+        continue
+      }
+
+      if (current && currentTokens + sentenceTokens > chunkSize) {
+        chunks.push(current.trim())
+        current = sentence
+        currentTokens = sentenceTokens
+        continue
+      }
+
+      current = `${current}${current ? ' ' : ''}${sentence}`.trim()
+      currentTokens += sentenceTokens
+    }
+
+    if (current) {
+      chunks.push(current.trim())
+    }
+
+    return chunks
+  }
+
+  private splitOversizedSentence(sentence: string, chunkSize: number): string[] {
+    const pieces: string[] = []
+    let remaining = sentence.trim()
+
+    while (remaining) {
+      let sliceLength = Math.max(1, Math.floor(chunkSize * 4))
+      if (remaining.length <= sliceLength) {
+        pieces.push(remaining.trim())
+        break
+      }
+
+      let breakIndex = findBestBreakIndex(remaining, sliceLength)
+      if (breakIndex <= 0) {
+        breakIndex = sliceLength
+      }
+
+      pieces.push(remaining.slice(0, breakIndex).trim())
+      remaining = remaining.slice(breakIndex).trim()
+    }
+
+    return pieces.filter(Boolean)
+  }
+
+  private async runWithTimeout<T>(
+    runner: (signal: AbortSignal) => Promise<T>,
+    timeoutMs: number,
+    upstreamSignal?: AbortSignal
+  ): Promise<T> {
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    const timeoutController = new AbortController()
+    const signal = mergeAbortSignals(upstreamSignal, timeoutController.signal)
+
+    try {
+      const timeoutPromise = new Promise<T>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          const timeoutError = new Error('AI 任务超时')
+          timeoutController.abort(timeoutError)
+          reject(timeoutError)
+        }, timeoutMs)
       })
-    ])
+
+      return await Promise.race([runner(signal), timeoutPromise])
+    } catch (error) {
+      if (signal.aborted) {
+        throw normalizeAbortError(signal.reason, upstreamSignal?.aborted === true)
+      }
+      throw error
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle)
+      }
+    }
   }
 }
 
@@ -230,6 +341,77 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+}
+
+function mergeAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal {
+  const availableSignals = signals.filter((signal): signal is AbortSignal => signal !== undefined)
+  if (availableSignals.length === 0) {
+    return new AbortController().signal
+  }
+
+  const abortedSignal = availableSignals.find((signal) => signal.aborted)
+  if (abortedSignal) {
+    const controller = new AbortController()
+    controller.abort(abortedSignal.reason)
+    return controller.signal
+  }
+
+  const controller = new AbortController()
+  for (const signal of availableSignals) {
+    signal.addEventListener(
+      'abort',
+      () => {
+        if (!controller.signal.aborted) {
+          controller.abort(signal.reason)
+        }
+      },
+      { once: true }
+    )
+  }
+  return controller.signal
+}
+
+function normalizeAbortError(reason: unknown, cancelledByUser: boolean): Error {
+  if (reason instanceof Error) {
+    return reason
+  }
+
+  if (typeof reason === 'string' && reason.trim()) {
+    return new Error(reason)
+  }
+
+  return new Error(cancelledByUser ? 'AI 任务已取消' : 'AI 任务超时')
+}
+
+function splitParagraphs(text: string): string[] {
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+}
+
+function extractSentences(text: string): string[] {
+  const matches = text.match(/[^.!?。！？\n]+(?:[.!?。！？]+|$)/g)
+  return (matches ?? [text]).map((sentence) => sentence.trim()).filter(Boolean)
+}
+
+function findBestBreakIndex(text: string, preferredIndex: number): number {
+  const windowStart = Math.max(0, preferredIndex - 80)
+  const candidateSlice = text.slice(windowStart, preferredIndex + 1)
+  const punctuationIndex = Math.max(
+    candidateSlice.lastIndexOf('。'),
+    candidateSlice.lastIndexOf('，'),
+    candidateSlice.lastIndexOf(','),
+    candidateSlice.lastIndexOf(';'),
+    candidateSlice.lastIndexOf('；'),
+    candidateSlice.lastIndexOf(' ')
+  )
+
+  if (punctuationIndex >= 0) {
+    return windowStart + punctuationIndex + 1
+  }
+
+  return preferredIndex
 }
 
 function toAiError(task: AiTask, error: unknown): AiError {

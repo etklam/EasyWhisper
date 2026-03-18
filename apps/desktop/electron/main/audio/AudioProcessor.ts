@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
-import { spawn } from 'child_process'
+import { spawn } from 'node:child_process'
 import { access, mkdir, readdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 
-import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_VIDEO_FORMATS } from '../constants'
-import { formatSrtTimecode, formatVttTimecode, getExtension } from '../utils'
+import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_VIDEO_FORMATS } from '@shared/formats'
+import { getExtension } from '../utils'
 import { createLineBuffer } from '../utils/lineBuffer'
 
 export interface ConversionProgress {
@@ -25,29 +25,51 @@ export class AudioProcessor {
   ): Promise<string> {
     const resolvedOutputPath = outputPath ?? path.join(this.cacheDir, `${this.getCacheKey(inputPath)}.wav`)
 
-    if (inputPath === resolvedOutputPath && !this.needsConversion(inputPath)) {
+    if (!this.needsConversion(inputPath) && (outputPath === undefined || inputPath === resolvedOutputPath)) {
+      return inputPath
+    }
+
+    if (inputPath === resolvedOutputPath) {
+      throw new Error('Converted WAV output path must be different from input path')
+    }
+
+    try {
+      await access(resolvedOutputPath)
       return resolvedOutputPath
+    } catch {
+      // Continue and produce the cached artifact.
     }
 
     try {
       await access(inputPath)
     } catch {
-      try {
-        await access(resolvedOutputPath)
-        return resolvedOutputPath
-      } catch {
-        throw new Error(`Input file not found: ${inputPath}`)
-      }
+      throw new Error(`Input file not found: ${inputPath}`)
     }
 
     await mkdir(path.dirname(resolvedOutputPath), { recursive: true })
 
     return new Promise((resolve, reject) => {
-      const args = ['-i', inputPath, '-ar', '16000', '-ac', '1', '-f', 'wav', resolvedOutputPath]
+      const args = [
+        '-y',
+        '-i',
+        inputPath,
+        '-vn',
+        '-acodec',
+        'pcm_s16le',
+        '-ar',
+        '16000',
+        '-ac',
+        '1',
+        '-f',
+        'wav',
+        resolvedOutputPath
+      ]
       const proc = spawn(this.ffmpegPath, args)
       let durationSeconds = 0
+      const stderrLines: string[] = []
 
       const parseLine = createLineBuffer((line) => {
+        stderrLines.push(line)
         const durationMatch = line.match(/Duration:\s+(\d{2}:\d{2}:\d{2}(?:\.\d+)?)/)
         if (durationMatch) {
           durationSeconds = timeToSeconds(durationMatch[1])
@@ -69,10 +91,15 @@ export class AudioProcessor {
       proc.on('error', reject)
       proc.on('close', (code) => {
         if (code === 0) {
+          onProgress?.({
+            percentage: 100,
+            time: durationSeconds > 0 ? secondsToTime(durationSeconds) : '00:00:00.00'
+          })
           resolve(resolvedOutputPath)
           return
         }
-        reject(new Error(`ffmpeg exited with code ${code}`))
+        const detail = stderrLines.slice(-3).join(' | ')
+        reject(new Error(`ffmpeg exited with code ${code}${detail ? `: ${detail}` : ''}`))
       })
     })
   }
@@ -123,4 +150,13 @@ export class AudioProcessor {
 function timeToSeconds(raw: string): number {
   const [hours, minutes, seconds] = raw.split(':')
   return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds)
+}
+
+function secondsToTime(value: number): string {
+  const hours = Math.floor(value / 3600)
+  const minutes = Math.floor((value % 3600) / 60)
+  const seconds = value % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${seconds
+    .toFixed(2)
+    .padStart(5, '0')}`
 }

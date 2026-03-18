@@ -2,9 +2,12 @@ import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
 
 import { registerAiIpc } from './ipc/ai'
+import { registerAudioHandlers } from './ipc/audioHandlers'
+import { registerModelHandlers } from './ipc/modelHandlers'
+import { registerOutputHandlers } from './ipc/outputHandlers'
 import { registerSettingsIpc } from './ipc/settings'
 import { registerWhisperIpc } from './ipc/whisper'
-import { registerYtDlpIpc } from './ipc/ytdlp'
+import { registerYtDlpHandlers } from './ipc/ytdlpHandlers'
 
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
@@ -21,8 +24,11 @@ function createWindow(): BrowserWindow {
   })
 
   registerWhisperIpc(mainWindow)
+  registerModelHandlers(mainWindow)
   registerAiIpc(mainWindow)
-  registerYtDlpIpc(mainWindow)
+  registerYtDlpHandlers(mainWindow)
+  registerAudioHandlers(mainWindow)
+  registerOutputHandlers()
   registerSettingsIpc()
 
   if (process.env.VITE_DEV_SERVER_URL) {

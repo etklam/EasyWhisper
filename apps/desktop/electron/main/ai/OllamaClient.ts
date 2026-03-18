@@ -2,6 +2,11 @@ import type { OllamaGenerateResponse, OllamaModel, OllamaTagsResponse } from './
 
 const BASE = 'http://localhost:11434'
 
+interface OllamaChatOptions {
+  signal?: AbortSignal
+  stream?: boolean
+}
+
 export async function checkOllama(): Promise<boolean> {
   try {
     const response = await fetch(`${BASE}/api/tags`)
@@ -19,11 +24,13 @@ export async function listModels(): Promise<string[]> {
 export async function chat(
   model: string,
   prompt: string,
-  stream = false
+  options: OllamaChatOptions = {}
 ): Promise<OllamaGenerateResponse> {
+  const { signal, stream = false } = options
   const response = await fetch(`${BASE}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal,
     body: JSON.stringify({
       model,
       prompt,

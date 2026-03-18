@@ -1,17 +1,19 @@
 import { defineStore } from 'pinia'
 
 import type {
-  AiRunResult,
   AiTaskType,
+  OutputFormat,
   WhisperCompleteEvent,
   WhisperErrorEvent,
-  WhisperProgressEvent,
+  WhisperModelInfo,
+  WhisperModelDownloadProgressEvent,
   WorkflowSettings,
   WhisperTask,
   YtDlpCompleteEvent,
   YtDlpErrorEvent,
   YtDlpProgressEvent
 } from '@shared/types'
+import { parseUrlList } from '@shared/url'
 
 type TaskSource = 'file' | 'ytdlp'
 
@@ -31,6 +33,7 @@ function createDefaultSettings(): WorkflowSettings {
     language: 'auto',
     useMetal: true,
     outputDir: '',
+    outputFormats: ['txt', 'srt'],
     ytdlpAudioFormat: 'mp3',
     ytdlpCookiesPath: '',
     aiEnabled: false,
@@ -47,25 +50,42 @@ export const useWhisperStore = defineStore('whisper', {
     tasks: [] as RuntimeTask[],
     settings: createDefaultSettings(),
     aiModels: [] as string[],
+    models: [] as WhisperModelInfo[],
+    modelDownloadProgress: {} as Partial<Record<string, number>>,
+    outputFormats: [] as OutputFormat[],
     listenersBound: false,
     initialized: false,
     unsubscribeHandles: [] as Array<() => void>
   }),
   actions: {
     async initialize() {
-      const [settingsResult, modelsResult] = await Promise.allSettled([
+      const [settingsResult, aiModelsResult, whisperModelsResult, outputFormatsResult] = await Promise.allSettled([
         window.fosswhisper.getSettings(),
-        window.fosswhisper.listAiModels()
+        window.fosswhisper.listAiModels(),
+        window.fosswhisper.listModels(),
+        window.fosswhisper.getOutputFormats()
       ])
 
       if (settingsResult.status === 'fulfilled') {
         this.settings = settingsResult.value
       }
 
-      if (modelsResult.status === 'fulfilled') {
-        this.aiModels = modelsResult.value
+      if (aiModelsResult.status === 'fulfilled') {
+        this.aiModels = aiModelsResult.value
       } else {
         this.aiModels = []
+      }
+
+      if (whisperModelsResult.status === 'fulfilled') {
+        this.models = whisperModelsResult.value
+      } else {
+        this.models = []
+      }
+
+      if (outputFormatsResult.status === 'fulfilled') {
+        this.outputFormats = outputFormatsResult.value
+      } else {
+        this.outputFormats = ['txt', 'srt', 'vtt', 'json']
       }
 
       this.initialized = true
@@ -143,6 +163,16 @@ export const useWhisperStore = defineStore('whisper', {
         })
       )
 
+      this.unsubscribeHandles.push(
+        window.fosswhisper.onModelProgress((event: WhisperModelDownloadProgressEvent) => {
+          this.modelDownloadProgress[event.modelId] = event.progress
+          const model = this.models.find((item) => item.id === event.modelId)
+          if (model && event.progress >= 100) {
+            model.downloaded = true
+          }
+        })
+      )
+
       this.listenersBound = true
     },
 
@@ -158,7 +188,7 @@ export const useWhisperStore = defineStore('whisper', {
     },
 
     async enqueueUrls(rawInput: string) {
-      const urls = parseUrlInput(rawInput)
+      const urls = parseUrlList(rawInput)
       for (const url of urls) {
         const task = this.createTask({
           source: 'ytdlp',
@@ -172,6 +202,22 @@ export const useWhisperStore = defineStore('whisper', {
 
     async updateSettings(partial: Partial<WorkflowSettings>) {
       this.settings = await window.fosswhisper.setSettings(partial)
+    },
+
+    async refreshModels() {
+      try {
+        this.models = await window.fosswhisper.listModels()
+      } catch {
+        this.models = []
+      }
+    },
+
+    async downloadModel(modelId: WhisperModelInfo['id']) {
+      this.modelDownloadProgress[modelId] = 0
+      await window.fosswhisper.downloadModel({ modelId })
+
+      this.modelDownloadProgress[modelId] = 100
+      await this.refreshModels()
     },
 
     async refreshAiModels() {
@@ -189,6 +235,10 @@ export const useWhisperStore = defineStore('whisper', {
       this.listenersBound = false
       this.unsubscribeHandles = []
       this.tasks = []
+      this.models = []
+      this.modelDownloadProgress = {}
+      this.outputFormats = []
+      this.initialized = false
     },
 
     createTask(partial: { source: TaskSource; audioPath: string; url?: string }): RuntimeTask {
@@ -298,10 +348,3 @@ export const useWhisperStore = defineStore('whisper', {
     }
   }
 })
-
-function parseUrlInput(rawInput: string): string[] {
-  return rawInput
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('#'))
-}

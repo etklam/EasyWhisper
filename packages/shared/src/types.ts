@@ -1,4 +1,34 @@
 export type WhisperTaskStatus = 'pending' | 'running' | 'completed' | 'error'
+export type OutputFormat = 'txt' | 'srt' | 'vtt' | 'json'
+
+export const WHISPER_MODEL_IDS = [
+  'ggml-base.bin',
+  'ggml-small.bin',
+  'ggml-medium.bin',
+  'ggml-large-v3.bin'
+] as const
+
+export type WhisperModelId = (typeof WHISPER_MODEL_IDS)[number]
+
+export interface WhisperModelInfo {
+  id: WhisperModelId
+  label: string
+  path: string
+  downloadUrl: string
+  sizeBytes?: number
+  downloaded: boolean
+}
+
+export interface WhisperModelDownloadPayload {
+  modelId: WhisperModelId
+}
+
+export interface WhisperModelDownloadProgressEvent {
+  modelId: WhisperModelId
+  progress: number
+  receivedBytes: number
+  totalBytes?: number
+}
 
 export interface WhisperTask {
   id: string
@@ -56,6 +86,7 @@ export interface WhisperSettings {
 }
 
 export interface WorkflowSettings extends WhisperSettings {
+  outputFormats: OutputFormat[]
   ytdlpAudioFormat: 'mp3' | 'wav' | 'm4a'
   ytdlpCookiesPath: string
   aiEnabled: boolean
@@ -89,6 +120,15 @@ export interface AiRunPayload {
   chunkSize?: number
   timeout?: number
   customPrompts?: AiCustomPrompts
+}
+
+export interface AiStopPayload {
+  taskId: string
+}
+
+export interface AiStopResponse {
+  taskId: string
+  stopped: boolean
 }
 
 export interface AiProgressEvent {
@@ -125,6 +165,7 @@ export interface AiSkippedResult {
 export type AiRunResult = AiSuccessResult | AiErrorResult | AiSkippedResult
 
 export interface AiStatusResponse {
+  connected: boolean
   running: boolean
   activeTasks: number
   queueLength: number
@@ -142,6 +183,15 @@ export interface YtDlpStartResponse {
   accepted: true
 }
 
+export interface YtDlpCancelPayload {
+  taskId: string
+}
+
+export interface YtDlpCancelResponse {
+  taskId: string
+  cancelled: boolean
+}
+
 export interface YtDlpProgressEvent {
   taskId: string
   progress: number
@@ -155,4 +205,37 @@ export interface YtDlpCompleteEvent {
 export interface YtDlpErrorEvent {
   taskId: string
   error: string
+}
+
+export interface AudioConvertPayload {
+  taskId?: string
+  inputPath: string
+  outputPath?: string
+}
+
+export interface AudioConvertResponse {
+  taskId: string
+  outputPath: string
+}
+
+export interface AudioProgressEvent {
+  taskId: string
+  progress: number
+  time: string
+}
+
+export interface WhisperModelDownloadResponse {
+  modelId: WhisperModelId
+  path: string
+}
+
+export interface OutputFormatPayload {
+  outputPath: string
+  format: OutputFormat
+}
+
+export interface OutputFormatResponse {
+  content: string
+  extension: string
+  outputPath: string
 }

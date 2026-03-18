@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type {
+  WhisperModelDownloadPayload,
+  WhisperModelId,
+  WhisperModelInfo,
   WhisperTaskStatus,
   WhisperTask,
   WhisperStartPayload,
@@ -8,8 +11,16 @@ import type {
   WhisperCompleteEvent,
   WhisperErrorEvent,
   WhisperSettings,
-  AppSettings
+  AppSettings,
+  WorkflowSettings,
+  AudioConvertPayload,
+  AudioProgressEvent,
+  OutputFormatPayload,
+  OutputFormatResponse,
+  YtDlpCancelPayload,
+  YtDlpCancelResponse
 } from '../types'
+import { WHISPER_MODEL_IDS } from '../types'
 
 describe('WhisperTask', () => {
   it('should have all required fields', () => {
@@ -108,12 +119,12 @@ describe('WhisperProgressEvent', () => {
   it('should have valid progress range', () => {
     const event: WhisperProgressEvent = {
       taskId: 'task-123',
-      progress: 0.75,
+      progress: 75,
       stage: 'transcribing'
     }
 
     expect(event.progress).toBeGreaterThanOrEqual(0)
-    expect(event.progress).toBeLessThanOrEqual(1)
+    expect(event.progress).toBeLessThanOrEqual(100)
   })
 })
 
@@ -163,6 +174,30 @@ describe('WhisperSettings', () => {
   })
 })
 
+describe('WorkflowSettings', () => {
+  it('should include output formats and workflow options', () => {
+    const settings: WorkflowSettings = {
+      modelPath: 'ggml-base.bin',
+      threads: 4,
+      language: 'auto',
+      useMetal: true,
+      outputDir: '/outputs',
+      outputFormats: ['txt', 'srt'],
+      ytdlpAudioFormat: 'mp3',
+      ytdlpCookiesPath: '',
+      aiEnabled: false,
+      aiModel: '',
+      aiTargetLang: 'zh-TW',
+      aiCorrect: false,
+      aiTranslate: false,
+      aiSummary: false
+    }
+
+    expect(settings.outputFormats).toEqual(['txt', 'srt'])
+    expect(settings.ytdlpAudioFormat).toBe('mp3')
+  })
+})
+
 describe('AppSettings', () => {
   it('should contain whisper settings', () => {
     const settings: AppSettings = {
@@ -192,5 +227,78 @@ describe('WhisperTaskStatus', () => {
     validStatuses.forEach((status) => {
       expect(typeof status).toBe('string')
     })
+  })
+})
+
+describe('Whisper models', () => {
+  it('should expose supported model ids', () => {
+    expect(WHISPER_MODEL_IDS).toEqual([
+      'ggml-base.bin',
+      'ggml-small.bin',
+      'ggml-medium.bin',
+      'ggml-large-v3.bin'
+    ])
+  })
+
+  it('should type model info payloads', () => {
+    const modelId: WhisperModelId = 'ggml-base.bin'
+    const model: WhisperModelInfo = {
+      id: modelId,
+      label: 'Base',
+      path: '/path/to/models/ggml-base.bin',
+      downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin?download=true',
+      downloaded: true,
+      sizeBytes: 123
+    }
+    const payload: WhisperModelDownloadPayload = {
+      modelId
+    }
+
+    expect(model.id).toBe(payload.modelId)
+    expect(model.downloaded).toBe(true)
+  })
+})
+
+describe('Additional workflow payloads', () => {
+  it('should type yt-dlp cancel payloads', () => {
+    const payload: YtDlpCancelPayload = {
+      taskId: 'task-123'
+    }
+    const response: YtDlpCancelResponse = {
+      taskId: payload.taskId,
+      cancelled: true
+    }
+
+    expect(response.cancelled).toBe(true)
+  })
+
+  it('should type audio conversion payloads', () => {
+    const payload: AudioConvertPayload = {
+      taskId: 'task-123',
+      inputPath: '/tmp/input.mp3'
+    }
+    const event: AudioProgressEvent = {
+      taskId: 'task-123',
+      progress: 50,
+      time: '00:00:10.00'
+    }
+
+    expect(payload.inputPath).toContain('input.mp3')
+    expect(event.progress).toBe(50)
+  })
+
+  it('should type formatted output responses', () => {
+    const payload: OutputFormatPayload = {
+      outputPath: '/tmp/task-123.json',
+      format: 'srt'
+    }
+    const response: OutputFormatResponse = {
+      content: '1\n00:00:00,000 --> 00:00:01,000\nhello',
+      extension: '.srt',
+      outputPath: '/tmp/task-123.srt'
+    }
+
+    expect(payload.format).toBe('srt')
+    expect(response.outputPath.endsWith(response.extension)).toBe(true)
   })
 })

@@ -1,14 +1,28 @@
-import { spawn } from 'node:child_process'
-import { cpus } from 'node:os'
-import path from 'node:path'
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createWriteStream } from 'node:fs'
 import { constants as fsConstants } from 'node:fs'
+import {
+  access,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  writeFile
+} from 'node:fs/promises'
+import { get } from 'node:https'
+import path from 'node:path'
+import { cpus } from 'node:os'
+import { spawn } from 'node:child_process'
 
 import type {
   WhisperCompleteEvent,
+  WhisperModelId,
+  WhisperModelInfo,
+  WhisperModelDownloadProgressEvent,
   WhisperProgressEvent,
   WhisperStartPayload
 } from '@shared/index'
+import { WHISPER_MODEL_IDS } from '@shared/index'
 import { createLineBuffer } from '../utils/lineBuffer'
 
 interface TranscribeOptions extends WhisperStartPayload {
@@ -16,23 +30,64 @@ interface TranscribeOptions extends WhisperStartPayload {
   onProgress: (event: WhisperProgressEvent) => void
 }
 
+interface WhisperMacOptions {
+  projectRoot?: string
+  modelsDir?: string
+  whisperDir?: string
+}
+
+const MODEL_CATALOG: Record<WhisperModelId, { label: string }> = {
+  'ggml-base.bin': { label: 'Base' },
+  'ggml-small.bin': { label: 'Small' },
+  'ggml-medium.bin': { label: 'Medium' },
+  'ggml-large-v3.bin': { label: 'Large v3' }
+}
+
+export const SUPPORTED_WHISPER_MODELS = WHISPER_MODEL_IDS
+
 export class WhisperMac {
+  private readonly projectRoot: string
+  private readonly modelsDir: string
+  private readonly whisperDir: string
+
+  constructor(options: WhisperMacOptions = {}) {
+    this.projectRoot = options.projectRoot ?? process.cwd()
+    this.modelsDir = options.modelsDir ?? path.resolve(this.projectRoot, 'models')
+    this.whisperDir = options.whisperDir ?? path.resolve(this.projectRoot, 'whisper')
+  }
+
   async transcribe(options: TranscribeOptions): Promise<WhisperCompleteEvent> {
     const startedAt = Date.now()
     const outputPath = await this.getOutputPath(options)
     const cliPath = await this.resolveWhisperCliPath()
+    const modelPath = await this.resolveModelPath(options.modelPath)
 
     if (!cliPath) {
-      return this.mockTranscribe(options, outputPath, startedAt)
+      if (isTestRuntime()) {
+        return this.mockTranscribe(options, outputPath, startedAt)
+      }
+
+      throw new Error(
+        `whisper-cli not found. Expected under ${path.resolve(this.whisperDir, 'build/main')} or set WHISPER_CLI_PATH`
+      )
     }
 
     return new Promise((resolve, reject) => {
-      const args = this.buildArgs(options, outputPath)
+      const args = this.buildArgs(options, outputPath, modelPath)
       const proc = spawn(cliPath, args, {
         stdio: ['ignore', 'pipe', 'pipe']
       })
+      const stderrLines: string[] = []
+
+      options.onProgress({
+        taskId: options.taskId,
+        progress: 0,
+        stage: 'preparing',
+        message: 'Starting whisper.cpp'
+      })
 
       const parseLine = createLineBuffer((line) => {
+        stderrLines.push(line)
         const progress = parseWhisperProgress(line)
         if (progress !== null) {
           options.onProgress({
@@ -50,11 +105,18 @@ export class WhisperMac {
 
       proc.on('close', async (code) => {
         if (code !== 0) {
-          reject(new Error(`whisper-cli exited with code ${code}`))
+          const detail = stderrLines.slice(-5).join(' | ')
+          reject(new Error(`whisper-cli exited with code ${code}${detail ? `: ${detail}` : ''}`))
           return
         }
 
         try {
+          options.onProgress({
+            taskId: options.taskId,
+            progress: 100,
+            stage: 'finalizing',
+            message: 'Reading transcription result'
+          })
           const text = await this.readTranscriptionText(outputPath)
           resolve({
             taskId: options.taskId,
@@ -69,12 +131,68 @@ export class WhisperMac {
     })
   }
 
+  async listModels(): Promise<WhisperModelInfo[]> {
+    await mkdir(this.modelsDir, { recursive: true })
+
+    return Promise.all(
+      SUPPORTED_WHISPER_MODELS.map(async (modelId) => {
+        const modelPath = path.join(this.modelsDir, modelId)
+        const metadata = MODEL_CATALOG[modelId]
+
+        try {
+          const fileStat = await stat(modelPath)
+          return {
+            id: modelId,
+            label: metadata.label,
+            path: modelPath,
+            downloadUrl: getModelDownloadUrl(modelId),
+            sizeBytes: fileStat.size,
+            downloaded: true
+          }
+        } catch {
+          return {
+            id: modelId,
+            label: metadata.label,
+            path: modelPath,
+            downloadUrl: getModelDownloadUrl(modelId),
+            downloaded: false
+          }
+        }
+      })
+    )
+  }
+
+  async downloadModel(
+    modelId: WhisperModelId,
+    onProgress?: (event: WhisperModelDownloadProgressEvent) => void
+  ): Promise<string> {
+    await mkdir(this.modelsDir, { recursive: true })
+
+    const targetPath = path.join(this.modelsDir, modelId)
+    try {
+      await access(targetPath, fsConstants.R_OK)
+      return targetPath
+    } catch {
+      return downloadFile(getModelDownloadUrl(modelId), targetPath, (receivedBytes, totalBytes) => {
+        const progress = totalBytes ? Math.round((receivedBytes / totalBytes) * 100) : 0
+        onProgress?.({
+          modelId,
+          progress: Math.max(0, Math.min(100, progress)),
+          receivedBytes,
+          totalBytes
+        })
+      })
+    }
+  }
+
   private async resolveWhisperCliPath(): Promise<string | null> {
     const candidates = [
       process.env.WHISPER_CLI_PATH,
-      path.resolve(process.cwd(), 'whisper.cpp/build/bin/whisper-cli'),
-      path.resolve(process.cwd(), 'third_party/whisper.cpp/build/bin/whisper-cli'),
-      path.resolve(process.resourcesPath, 'whisper-cli')
+      path.resolve(this.whisperDir, 'build/main/whisper-cli'),
+      path.resolve(this.whisperDir, 'build/main/bin/whisper-cli'),
+      path.resolve(this.whisperDir, 'build/bin/whisper-cli'),
+      path.resolve(this.whisperDir, 'build/src/whisper-cli'),
+      process.resourcesPath ? path.resolve(process.resourcesPath, 'whisper-cli') : undefined
     ].filter((candidate): candidate is string => Boolean(candidate))
 
     for (const candidate of candidates) {
@@ -89,11 +207,27 @@ export class WhisperMac {
     return null
   }
 
-  private buildArgs(options: TranscribeOptions, outputPath: string): string[] {
+  private async resolveModelPath(modelPathOrId: string): Promise<string> {
+    const normalizedPath = path.resolve(modelPathOrId)
+
+    try {
+      await access(normalizedPath, fsConstants.R_OK)
+      return normalizedPath
+    } catch {
+      const modelId = path.basename(modelPathOrId) as WhisperModelId
+      if (!SUPPORTED_WHISPER_MODELS.includes(modelId)) {
+        throw new Error(`Unsupported Whisper model: ${modelPathOrId}`)
+      }
+
+      return this.downloadModel(modelId)
+    }
+  }
+
+  private buildArgs(options: TranscribeOptions, outputPath: string, modelPath: string): string[] {
     const outputWithoutExt = outputPath.replace(/\.json$/, '')
     const args = [
       '-m',
-      options.modelPath,
+      modelPath,
       '-f',
       options.audioPath,
       '-l',
@@ -113,7 +247,7 @@ export class WhisperMac {
   }
 
   private async getOutputPath(options: TranscribeOptions): Promise<string> {
-    const outputDir = options.outputDir ?? path.resolve(process.cwd(), 'outputs')
+    const outputDir = options.outputDir ?? path.resolve(this.projectRoot, 'outputs')
     await mkdir(outputDir, { recursive: true })
     return path.join(outputDir, `${options.taskId}.json`)
   }
@@ -137,7 +271,7 @@ export class WhisperMac {
     })
 
     for (let step = 1; step <= 10; step += 1) {
-      await wait(250)
+      await wait(isTestRuntime() ? 1 : 250)
       options.onProgress({
         taskId: options.taskId,
         progress: step * 10,
@@ -177,5 +311,84 @@ function parseWhisperProgress(line: string): number | null {
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
+  })
+}
+
+function getModelDownloadUrl(modelId: WhisperModelId): string {
+  return `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${modelId}?download=true`
+}
+
+function isTestRuntime(): boolean {
+  return process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
+}
+
+function downloadFile(
+  url: string,
+  destinationPath: string,
+  onProgress?: (receivedBytes: number, totalBytes?: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const tempPath = `${destinationPath}.download`
+
+    const fail = async (error: Error) => {
+      await rm(tempPath, { force: true }).catch(() => undefined)
+      reject(error)
+    }
+
+    const request = (currentUrl: string) => {
+      const req = get(currentUrl, (response) => {
+        const statusCode = response.statusCode ?? 0
+
+        if ([301, 302, 307, 308].includes(statusCode) && response.headers.location) {
+          response.resume()
+          request(response.headers.location.startsWith('http')
+            ? response.headers.location
+            : new URL(response.headers.location, currentUrl).toString())
+          return
+        }
+
+        if (statusCode !== 200) {
+          response.resume()
+          void fail(new Error(`Model download failed with status ${statusCode}`))
+          return
+        }
+
+        const totalBytesHeader = response.headers['content-length']
+        const totalBytes = totalBytesHeader ? Number(totalBytesHeader) : undefined
+        let receivedBytes = 0
+        const output = createWriteStream(tempPath)
+
+        response.on('data', (chunk: Buffer) => {
+          receivedBytes += chunk.length
+          onProgress?.(receivedBytes, totalBytes)
+        })
+
+        output.on('error', (error) => {
+          void fail(error)
+        })
+
+        response.on('error', (error) => {
+          void fail(error)
+        })
+
+        output.on('finish', async () => {
+          output.close()
+          try {
+            await rename(tempPath, destinationPath)
+            resolve(destinationPath)
+          } catch (error) {
+            void fail(error as Error)
+          }
+        })
+
+        response.pipe(output)
+      })
+
+      req.on('error', (error) => {
+        void fail(error)
+      })
+    }
+
+    request(url)
   })
 }

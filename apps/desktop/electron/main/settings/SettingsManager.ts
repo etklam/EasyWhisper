@@ -201,14 +201,14 @@ export class SettingsManager {
     if (settings.maxAiConcurrency <= 0) {
       throw new Error('maxAiConcurrency must be positive')
     }
-    if (VALID_LOCALES.indexOf(settings.locale as any) === -1) {
+    if (!isValidLocale(settings.locale)) {
       throw new Error(`Invalid locale: ${settings.locale}`)
     }
     if (!Array.isArray(settings.outputFormats) || settings.outputFormats.length === 0) {
       throw new Error('outputFormats must contain at least one format')
     }
     for (const format of settings.outputFormats) {
-      if (VALID_OUTPUT_FORMATS.indexOf(format as any) === -1) {
+      if (!isValidOutputFormat(format)) {
         throw new Error(`Invalid output format: ${format}`)
       }
     }
@@ -281,4 +281,12 @@ export class SettingsManager {
 
 function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
+}
+
+function isValidLocale(locale: string): locale is SettingsSchema['locale'] {
+  return (VALID_LOCALES as readonly string[]).includes(locale)
+}
+
+function isValidOutputFormat(format: string): format is SettingsSchema['outputFormats'][number] {
+  return (VALID_OUTPUT_FORMATS as readonly string[]).includes(format)
 }

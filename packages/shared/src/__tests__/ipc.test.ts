@@ -7,6 +7,15 @@ describe('IPC_CHANNELS', () => {
     expect(IPC_CHANNELS.WHISPER_PROGRESS).toBe('whisper:progress')
     expect(IPC_CHANNELS.WHISPER_COMPLETE).toBe('whisper:complete')
     expect(IPC_CHANNELS.WHISPER_ERROR).toBe('whisper:error')
+    expect(IPC_CHANNELS.MODEL_LIST).toBe('model:list')
+    expect(IPC_CHANNELS.MODEL_DOWNLOAD).toBe('model:download')
+    expect(IPC_CHANNELS.MODEL_PROGRESS).toBe('model:progress')
+    expect(IPC_CHANNELS.AUDIO_CONVERT).toBe('audio:convert')
+    expect(IPC_CHANNELS.AUDIO_PROGRESS).toBe('audio:progress')
+    expect(IPC_CHANNELS.OUTPUT_FORMAT).toBe('output:format')
+    expect(IPC_CHANNELS.OUTPUT_GET_FORMATS).toBe('output:getFormats')
+    expect(IPC_CHANNELS.YTDLP_DOWNLOAD).toBe('ytdlp:download')
+    expect(IPC_CHANNELS.YTDLP_CANCEL).toBe('ytdlp:cancel')
   })
 
   it('should have unique channel names', () => {
@@ -20,12 +29,15 @@ describe('IPC_CHANNELS', () => {
       'whisper:start',
       'whisper:progress',
       'whisper:complete',
-      'whisper:error'
+      'whisper:error',
+      'audio:convert',
+      'output:format',
+      'ytdlp:download'
     ]
 
     channels.forEach((channel) => {
       expect(typeof channel).toBe('string')
-      expect(channel).toMatch(/^whisper:/)
+      expect(channel).toMatch(/^[a-z]+:/)
     })
   })
 })

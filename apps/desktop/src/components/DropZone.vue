@@ -5,18 +5,18 @@
       :class="{ active: isDragging }"
       @dragenter.prevent="isDragging = true"
       @dragover.prevent="isDragging = true"
-      @dragleave.prevent="isDragging = false"
+      @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop"
     >
-      <p class="title">Drop audio/video files here</p>
-      <p class="hint">or pick files manually</p>
-      <n-button tertiary type="primary" @click="openFilePicker">Choose Files</n-button>
+      <p class="title">拖放音频或视频文件</p>
+      <p class="hint">支持批量导入，支持格式：{{ acceptedLabel }}</p>
+      <n-button tertiary type="primary" @click="openFilePicker">选择文件</n-button>
       <input
         ref="inputRef"
         type="file"
         class="hidden-input"
         multiple
-        accept=".mp3,.wav,.m4a,.mp4,.mov,.mkv"
+        :accept="acceptedInput"
         @change="handleFileInput"
       />
     </div>
@@ -25,66 +25,118 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useMessage } from 'naive-ui'
 
-const emit = defineEmits<{
-  files: [paths: string[]]
-}>()
+import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_VIDEO_FORMATS } from '@shared/formats'
+import { useQueueStore } from '@/stores/queue'
 
-const isDragging = ref(false)
+const queueStore = useQueueStore()
+const message = useMessage()
 const inputRef = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
 
-function extractPaths(list: FileList | null): string[] {
-  if (!list) return []
-  return Array.from(list)
-    .map((file) => (file as File & { path?: string }).path)
-    .filter((path): path is string => Boolean(path))
+const acceptedFormats = [...SUPPORTED_AUDIO_FORMATS, ...SUPPORTED_VIDEO_FORMATS].filter((format) =>
+  ['mp3', 'wav', 'm4a', 'mp4', 'mov', 'mkv'].includes(format)
+)
+const acceptedInput = acceptedFormats.map((format) => `.${format}`).join(',')
+const acceptedLabel = acceptedInput.replaceAll(',', ' ')
+
+function openFilePicker() {
+  inputRef.value?.click()
+}
+
+function handleDragLeave(event: DragEvent) {
+  const currentTarget = event.currentTarget as HTMLElement | null
+  if (currentTarget?.contains(event.relatedTarget as Node | null)) {
+    return
+  }
+  isDragging.value = false
 }
 
 function handleDrop(event: DragEvent) {
   isDragging.value = false
-  emit('files', extractPaths(event.dataTransfer?.files ?? null))
+  queueFiles(extractPaths(event.dataTransfer?.files ?? null))
 }
 
 function handleFileInput(event: Event) {
   const input = event.target as HTMLInputElement
-  emit('files', extractPaths(input.files))
+  queueFiles(extractPaths(input.files))
   input.value = ''
 }
 
-function openFilePicker() {
-  inputRef.value?.click()
+function extractPaths(list: FileList | null): string[] {
+  if (!list) {
+    return []
+  }
+
+  return Array.from(list)
+    .map((file) => (file as File & { path?: string }).path)
+    .filter((filePath): filePath is string => Boolean(filePath))
+}
+
+function queueFiles(filePaths: string[]) {
+  const validFiles = filePaths.filter(isSupportedFile)
+  const rejectedCount = filePaths.length - validFiles.length
+
+  if (rejectedCount > 0) {
+    message.warning(`已忽略 ${rejectedCount} 个不支持的文件`)
+  }
+
+  if (validFiles.length === 0) {
+    if (filePaths.length > 0) {
+      message.error('没有可导入的音频或视频文件')
+    }
+    return
+  }
+
+  queueStore.enqueueFiles(validFiles)
+  message.success(`已加入 ${validFiles.length} 个文件`)
+}
+
+function isSupportedFile(filePath: string): boolean {
+  const extension = filePath.split('.').pop()?.toLowerCase() ?? ''
+  return acceptedFormats.includes(extension as (typeof acceptedFormats)[number])
 }
 </script>
 
 <style scoped>
 .drop-zone {
-  border-radius: 16px;
+  border-radius: 18px;
 }
 
 .drop-target {
-  border: 2px dashed #94a3b8;
-  border-radius: 12px;
-  padding: 28px;
+  border: 2px dashed #9ca3af;
+  border-radius: 14px;
+  padding: 32px 20px;
   display: grid;
   justify-items: center;
   gap: 10px;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  text-align: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  background:
+    radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 46%),
+    linear-gradient(180deg, rgba(240, 253, 244, 0.7), rgba(255, 255, 255, 0.95));
 }
 
 .drop-target.active {
-  border-color: #0f766e;
-  background-color: #ecfeff;
+  border-color: #15803d;
+  background:
+    radial-gradient(circle at top, rgba(34, 197, 94, 0.14), transparent 52%),
+    linear-gradient(180deg, rgba(220, 252, 231, 0.95), rgba(255, 255, 255, 0.98));
+  transform: translateY(-1px);
 }
 
 .title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  color: #14532d;
 }
 
 .hint {
   margin: 0;
-  color: #64748b;
+  color: #4b5563;
+  line-height: 1.5;
 }
 
 .hidden-input {
