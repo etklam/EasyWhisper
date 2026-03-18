@@ -35,10 +35,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getNaiveLocale } from '@/utils/i18n-helpers'
+import { useLocale } from '@/composables/useLocale'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,6 +50,12 @@ const subtitle = computed(() =>
   isSettings.value ? t('app.subtitleSettings') : t('app.subtitleHome')
 )
 const naiveLocale = computed(() => getNaiveLocale(locale.value))
+
+const { initializeLocale } = useLocale()
+
+onMounted(() => {
+  initializeLocale()
+})
 
 function goHome() {
   void router.push({ name: 'home' })
