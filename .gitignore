@@ -39,3 +39,6 @@ tmp/
 
 # TypeScript incremental build metadata
 *.tsbuildinfo
+
+# Git worktrees
+.worktrees/
