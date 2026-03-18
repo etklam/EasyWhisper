@@ -9,13 +9,11 @@
 
         <section class="main-grid">
           <div class="left-column">
-            <DropZone />
-            <UrlInput />
+            <ImportPanel />
             <QueueTable />
           </div>
           <div class="right-column">
-            <ModelSelector />
-            <AiPanel />
+            <AiQuickToggles />
             <n-card title="输出格式">
               <n-checkbox-group
                 :value="whisperStore.settings.outputFormats"
@@ -28,7 +26,6 @@
                 </n-space>
               </n-checkbox-group>
             </n-card>
-            <SettingsPanel :settings="whisperStore.settings" @apply="whisperStore.updateSettings" />
           </div>
         </section>
       </div>
@@ -40,12 +37,9 @@
 import { onBeforeUnmount, onMounted } from 'vue'
 
 import type { OutputFormat } from '@shared/types'
-import AiPanel from '@/components/AiPanel.vue'
-import DropZone from '@/components/DropZone.vue'
-import ModelSelector from '@/components/ModelSelector.vue'
+import AiQuickToggles from '@/components/AiQuickToggles.vue'
+import ImportPanel from '@/components/ImportPanel.vue'
 import QueueTable from '@/components/QueueTable.vue'
-import SettingsPanel from '@/components/SettingsPanel.vue'
-import UrlInput from '@/components/UrlInput.vue'
 import { useAiStore } from '@/stores/ai'
 import { useQueueStore } from '@/stores/queue'
 import { useWhisperStore } from '@/stores/whisper'
