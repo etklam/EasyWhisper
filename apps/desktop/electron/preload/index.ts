@@ -14,6 +14,7 @@ import type {
   OutputFormat,
   OutputFormatPayload,
   OutputFormatResponse,
+  OpenFolderResponse,
   WorkflowSettings,
   WhisperCompleteEvent,
   WhisperErrorEvent,
@@ -45,9 +46,13 @@ const api = {
   getSettings: (): Promise<WorkflowSettings> => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
   setSettings: (settings: Partial<WorkflowSettings>): Promise<WorkflowSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, settings),
+  openOutputFolder: (): Promise<OpenFolderResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_OPEN_OUTPUT_FOLDER),
   listModels: (): Promise<WhisperModelInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.MODEL_LIST),
   downloadModel: (payload: WhisperModelDownloadPayload): Promise<WhisperModelDownloadResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.MODEL_DOWNLOAD, payload),
+  openModelFolder: (): Promise<OpenFolderResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.MODEL_OPEN_FOLDER),
   convertAudio: (payload: AudioConvertPayload): Promise<AudioConvertResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.AUDIO_CONVERT, payload),
   formatOutput: (payload: OutputFormatPayload): Promise<OutputFormatResponse> =>

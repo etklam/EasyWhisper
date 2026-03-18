@@ -229,6 +229,12 @@ export interface WhisperModelDownloadResponse {
   path: string
 }
 
+export interface OpenFolderResponse {
+  ok: boolean
+  path?: string
+  error?: string
+}
+
 export interface OutputFormatPayload {
   outputPath: string
   format: OutputFormat

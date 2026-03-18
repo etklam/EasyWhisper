@@ -11,6 +11,7 @@ import type {
   OutputFormat,
   OutputFormatPayload,
   OutputFormatResponse,
+  OpenFolderResponse,
   WorkflowSettings,
   WhisperCompleteEvent,
   WhisperErrorEvent,
@@ -40,8 +41,10 @@ declare global {
       listAiModels: () => Promise<string[]>
       getSettings: () => Promise<WorkflowSettings>
       setSettings: (settings: Partial<WorkflowSettings>) => Promise<WorkflowSettings>
+      openOutputFolder: () => Promise<OpenFolderResponse>
       listModels: () => Promise<WhisperModelInfo[]>
       downloadModel: (payload: WhisperModelDownloadPayload) => Promise<WhisperModelDownloadResponse>
+      openModelFolder: () => Promise<OpenFolderResponse>
       convertAudio: (payload: AudioConvertPayload) => Promise<AudioConvertResponse>
       formatOutput: (payload: OutputFormatPayload) => Promise<OutputFormatResponse>
       getOutputFormats: () => Promise<OutputFormat[]>
