@@ -96,6 +96,7 @@ export interface WorkflowSettings extends WhisperSettings {
   aiTranslate: boolean
   aiSummary: boolean
   aiCustomPrompts?: AiCustomPrompts
+  locale?: 'en' | 'zh-TW' | 'zh-CN'
 }
 
 export interface AppSettings {
