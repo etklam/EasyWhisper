@@ -33,6 +33,12 @@ interface WrapperProgressPayload {
   message?: string
 }
 
+interface WhisperWindowsRuntimeFiles {
+  cliPath: string
+  dllPath?: string
+  runtimeDir: string
+}
+
 export class WhisperWindows implements WhisperRuntime {
   private readonly userDataDir: string
   private readonly modelsDir: string
@@ -47,18 +53,18 @@ export class WhisperWindows implements WhisperRuntime {
   async transcribe(options: WhisperTranscribeOptions): Promise<WhisperCompleteEvent> {
     const startedAt = Date.now()
     const outputPath = await this.getOutputPath(options)
-    const cliPath = await this.resolveWrapperPath()
+    const runtimeFiles = await this.resolveRuntimeFiles()
     const modelPath = await resolveModelPath(this.modelsDir, options.modelPath)
 
-    if (!cliPath) {
+    if (!runtimeFiles) {
       throw new Error(
-        'WhisperCLI.exe not found. Install the Windows const-me runtime or set WHISPER_WINDOWS_CLI_PATH.'
+        'WhisperCLI.exe not found. Install the Windows const-me runtime under resources/win or set WHISPER_WINDOWS_CLI_PATH.'
       )
     }
 
     return new Promise((resolve, reject) => {
-      const args = this.buildArgs(options, outputPath, modelPath)
-      const proc = spawn(cliPath, args, {
+      const args = this.buildArgs(options, outputPath, modelPath, runtimeFiles)
+      const proc = spawn(runtimeFiles.cliPath, args, {
         stdio: ['ignore', 'pipe', 'pipe']
       })
       const stderrLines: string[] = []
@@ -135,8 +141,13 @@ export class WhisperWindows implements WhisperRuntime {
     return downloadWhisperModel(this.modelsDir, modelId, onProgress)
   }
 
-  private buildArgs(options: WhisperTranscribeOptions, outputPath: string, modelPath: string): string[] {
-    return [
+  private buildArgs(
+    options: WhisperTranscribeOptions,
+    outputPath: string,
+    modelPath: string,
+    runtimeFiles: WhisperWindowsRuntimeFiles
+  ): string[] {
+    const args = [
       '--model',
       modelPath,
       '--input',
@@ -150,6 +161,12 @@ export class WhisperWindows implements WhisperRuntime {
       '--compute',
       'auto'
     ]
+
+    if (runtimeFiles.dllPath) {
+      args.push('--dll', runtimeFiles.dllPath)
+    }
+
+    return args
   }
 
   private async getOutputPath(options: WhisperTranscribeOptions): Promise<string> {
@@ -158,18 +175,18 @@ export class WhisperWindows implements WhisperRuntime {
     return path.join(outputDir, `${options.taskId}.json`)
   }
 
-  private async resolveWrapperPath(): Promise<string | null> {
-    const candidates = [
-      process.env.WHISPER_WINDOWS_CLI_PATH,
-      path.join(this.runtimeDir, 'WhisperCLI.exe'),
-      process.resourcesPath ? path.join(process.resourcesPath, 'WhisperCLI.exe') : undefined,
-      process.resourcesPath ? path.join(process.resourcesPath, 'resources', 'WhisperCLI.exe') : undefined
-    ].filter((candidate): candidate is string => Boolean(candidate))
+  private async resolveRuntimeFiles(): Promise<WhisperWindowsRuntimeFiles | null> {
+    for (const runtimeDir of getWhisperWindowsRuntimeDirCandidates(this.runtimeDir)) {
+      const cliPath = process.env.WHISPER_WINDOWS_CLI_PATH ?? path.join(runtimeDir, 'WhisperCLI.exe')
 
-    for (const candidate of candidates) {
       try {
-        await access(candidate, fsConstants.R_OK)
-        return candidate
+        await access(cliPath, fsConstants.R_OK)
+        const dllPath = await firstAccessiblePath(getWhisperWindowsDllCandidates(runtimeDir))
+        return {
+          cliPath,
+          dllPath: dllPath ?? undefined,
+          runtimeDir
+        }
       } catch {
         continue
       }
@@ -183,6 +200,24 @@ export class WhisperWindows implements WhisperRuntime {
     const json = JSON.parse(raw) as { text?: string }
     return json.text ?? ''
   }
+}
+
+export function getWhisperWindowsRuntimeDirCandidates(runtimeDir: string): string[] {
+  const candidates = [
+    runtimeDir,
+    process.resourcesPath ? path.join(process.resourcesPath, 'win') : undefined,
+    process.resourcesPath ? path.join(process.resourcesPath, 'resources', 'win') : undefined
+  ].filter((candidate): candidate is string => Boolean(candidate))
+
+  return Array.from(new Set(candidates))
+}
+
+export function getWhisperWindowsDllCandidates(runtimeDir: string): string[] {
+  return Array.from(new Set([
+    process.env.WHISPER_WINDOWS_DLL_PATH,
+    path.join(runtimeDir, 'whisper.dll'),
+    path.join(runtimeDir, 'libwhisper.dll')
+  ].filter((candidate): candidate is string => Boolean(candidate))))
 }
 
 export function parseWrapperProgressLine(
@@ -228,4 +263,17 @@ function parsePercentProgress(line: string): number | null {
   }
 
   return Math.max(0, Math.min(100, progress))
+}
+
+async function firstAccessiblePath(candidates: string[]): Promise<string | null> {
+  for (const candidate of candidates) {
+    try {
+      await access(candidate, fsConstants.R_OK)
+      return candidate
+    } catch {
+      continue
+    }
+  }
+
+  return null
 }

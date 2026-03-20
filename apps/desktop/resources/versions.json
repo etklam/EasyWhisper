@@ -1,0 +1,12 @@
+{
+  "whisper-cli": {
+    "version": "pending",
+    "platform": "win32",
+    "notes": "Place the Const-me wrapper binary at resources/win/WhisperCLI.exe."
+  },
+  "whisper-dll": {
+    "version": "pending",
+    "platform": "win32",
+    "notes": "Place the Const-me runtime library at resources/win/whisper.dll."
+  }
+}
