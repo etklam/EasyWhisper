@@ -31,7 +31,7 @@ resources/models/*.bin
 models/
 
 # Local whisper.cpp checkout/build
-whisper/
+/whisper/
 
 # Temp files
 *.log

@@ -21,15 +21,15 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn()
 }))
 
-vi.mock('../../main/whisper/WhisperMac', () => ({
-  WhisperMac: vi.fn().mockImplementation(() => ({
+vi.mock('../../main/whisper/runtime', () => ({
+  getWhisperRuntime: vi.fn().mockReturnValue({
     transcribe: vi.fn().mockResolvedValue({
       taskId: 'task-123',
       outputPath: '/path/to/output.json',
       text: 'Transcribed text',
       durationMs: 5000
     })
-  }))
+  })
 }))
 
 import { registerWhisperIpc } from '../../main/ipc/whisper'

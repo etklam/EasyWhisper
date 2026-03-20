@@ -1,5 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import path from 'node:path'
+import { BrowserWindow, ipcMain } from 'electron'
 import { randomUUID } from 'node:crypto'
 
 import { IPC_CHANNELS } from '@shared/ipc'
@@ -9,20 +8,7 @@ import type {
   WhisperStartPayload,
   WhisperStartResponse
 } from '@shared/types'
-import { WhisperMac } from '../whisper/WhisperMac'
-
-let whisperMac: WhisperMac | null = null
-
-function getWhisperMac(): WhisperMac {
-  if (!whisperMac) {
-    whisperMac = new WhisperMac({
-      projectRoot: app.getPath('userData'),
-      modelsDir: path.join(app.getPath('userData'), 'models')
-    })
-  }
-
-  return whisperMac
-}
+import { getWhisperRuntime } from '../whisper/runtime'
 
 export function registerWhisperIpc(mainWindow: BrowserWindow): void {
   if (typeof ipcMain.removeHandler === 'function') {
@@ -33,7 +19,7 @@ export function registerWhisperIpc(mainWindow: BrowserWindow): void {
     async (_event, payload: WhisperStartPayload): Promise<WhisperStartResponse> => {
       const taskId = payload.taskId ?? randomUUID()
 
-      void getWhisperMac()
+      void getWhisperRuntime()
         .transcribe({
           ...payload,
           taskId,

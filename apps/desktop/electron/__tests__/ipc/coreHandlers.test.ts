@@ -66,11 +66,11 @@ vi.mock('../../main/audio/AudioProcessor', () => ({
   }))
 }))
 
-vi.mock('../../main/whisper/WhisperMac', () => ({
-  WhisperMac: vi.fn().mockImplementation(() => ({
+vi.mock('../../main/whisper/runtime', () => ({
+  getWhisperRuntime: vi.fn().mockReturnValue({
     listModels: listModelsMock,
     downloadModel: downloadModelMock
-  }))
+  })
 }))
 
 vi.mock('../../main/output/OutputFormatter', () => ({
@@ -198,7 +198,7 @@ describe('Core IPC handlers', () => {
     const listHandler = getHandler('model:list')
     await listHandler({}, undefined)
 
-    expect(app.getPath).toHaveBeenCalledWith('userData')
+    expect(listModelsMock).toHaveBeenCalledTimes(1)
   })
 
   it('registers folder-open IPC channels', () => {

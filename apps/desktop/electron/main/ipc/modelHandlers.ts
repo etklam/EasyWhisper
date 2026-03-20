@@ -9,31 +9,7 @@ import type {
   WhisperModelDownloadResponse,
   WhisperModelInfo
 } from '@shared/types'
-import { WhisperMac } from '../whisper/WhisperMac'
-
-let whisperMac: WhisperMac | null = null
-
-function getWhisperMac(): WhisperMac {
-  if (!whisperMac) {
-    const userDataPath = app.getPath('userData')
-    const modelsDir = path.join(userDataPath, 'models')
-
-    if (process.env.FOSSWHISPER_DEBUG_PATHS === '1') {
-      console.error('[fosswhisper:modelHandlers] init WhisperMac', {
-        cwd: process.cwd(),
-        userDataPath,
-        modelsDir,
-        resourcesPath: process.resourcesPath
-      })
-    }
-
-    whisperMac = new WhisperMac({
-      modelsDir
-    })
-  }
-
-  return whisperMac
-}
+import { getWhisperRuntime } from '../whisper/runtime'
 
 export function registerModelHandlers(mainWindow: BrowserWindow): void {
   if (typeof ipcMain.removeHandler === 'function') {
@@ -43,13 +19,13 @@ export function registerModelHandlers(mainWindow: BrowserWindow): void {
   }
 
   ipcMain.handle(IPC_CHANNELS.MODEL_LIST, async (): Promise<WhisperModelInfo[]> => {
-    return getWhisperMac().listModels()
+    return getWhisperRuntime().listModels()
   })
 
   ipcMain.handle(
     IPC_CHANNELS.MODEL_DOWNLOAD,
     async (_event, payload: WhisperModelDownloadPayload): Promise<WhisperModelDownloadResponse> => {
-      const modelPath = await getWhisperMac().downloadModel(payload.modelId, (progress) => {
+      const modelPath = await getWhisperRuntime().downloadModel(payload.modelId, (progress) => {
         mainWindow.webContents.send(IPC_CHANNELS.MODEL_PROGRESS, progress)
       })
 
