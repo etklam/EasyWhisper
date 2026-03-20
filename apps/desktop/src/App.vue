@@ -38,7 +38,7 @@
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { getNaiveLocale } from '@/utils/i18n-helpers'
+import { getNaiveLocale, type SupportedLocale } from '@/utils/i18n-helpers'
 import { useLocale } from '@/composables/useLocale'
 
 const route = useRoute()
@@ -49,7 +49,7 @@ const isSettings = computed(() => route.name === 'settings')
 const subtitle = computed(() =>
   isSettings.value ? t('app.subtitleSettings') : t('app.subtitleHome')
 )
-const naiveLocale = computed(() => getNaiveLocale(locale.value))
+const naiveLocale = computed(() => getNaiveLocale(locale.value as SupportedLocale))
 
 const { initializeLocale } = useLocale()
 

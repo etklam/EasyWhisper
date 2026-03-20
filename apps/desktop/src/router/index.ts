@@ -8,19 +8,12 @@ export const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
-      meta: {
-        title: '工作台'
-      }
+      component: HomeView
     },
     {
       path: '/settings',
       name: 'settings',
-      component: SettingsView,
-      meta: {
-        title: '设置'
-      }
+      component: SettingsView
     }
   ]
 })
-

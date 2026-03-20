@@ -329,6 +329,7 @@
       "aiQueued": "AI queued, waiting{step}",
       "aiQueuedShort": "AI queued",
       "aiProcessing": "AI processing {step} {progress}%",
+      "aiProcessingShort": "AI processing {progress}%",
       "complete": "Completed in {duration}s",
       "transcriptionAiComplete": "Transcription and AI processing complete",
       "aiFailed": "AI processing failed: {error}",

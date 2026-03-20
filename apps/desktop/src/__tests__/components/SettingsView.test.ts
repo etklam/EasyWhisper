@@ -21,6 +21,18 @@ vi.mock('@/components/ModelSelector.vue', () => ({
   }
 }))
 
+vi.mock('@/components/YtDlpStatus.vue', () => ({
+  default: {
+    template: '<div data-testid="ytdlp-status">yt-dlp Status</div>'
+  }
+}))
+
+vi.mock('@/components/FfmpegStatus.vue', () => ({
+  default: {
+    template: '<div data-testid="ffmpeg-status">ffmpeg Status</div>'
+  }
+}))
+
 // Mock window.fosswhisper APIs
 const mockOpenModelFolder = vi.fn()
 const mockOpenOutputFolder = vi.fn()
@@ -44,6 +56,7 @@ Object.defineProperty(window, 'fosswhisper', {
 })
 
 import SettingsView from '@/views/SettingsView.vue'
+import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { useWhisperStore } from '@/stores/whisper'
 
@@ -59,14 +72,14 @@ describe('SettingsView', () => {
 
     const wrapper = mount(SettingsView, {
       global: {
-        plugins: [naive]
+        plugins: [naive, i18n]
       }
     })
 
     await wrapper.get('[data-testid="save-transcription-settings"]').trigger('click')
 
     await vi.waitFor(() => {
-      expect(message.error).toHaveBeenCalledWith('保存失败，请重试')
+      expect(message.error).toHaveBeenCalledWith(i18n.global.t('settings.transcription.saveFailed'))
     })
     expect(message.success).not.toHaveBeenCalled()
   })
@@ -77,14 +90,14 @@ describe('SettingsView', () => {
 
       const wrapper = mount(SettingsView, {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       })
 
       await wrapper.get('[data-testid="open-model-folder"]').trigger('click')
 
       expect(mockOpenModelFolder).toHaveBeenCalled()
-      expect(message.success).toHaveBeenCalledWith('已打开模型文件夹')
+      expect(message.success).toHaveBeenCalledWith(i18n.global.t('settings.messages.folderOpened'))
     })
 
     it('shows error when opening model folder fails', async () => {
@@ -92,13 +105,15 @@ describe('SettingsView', () => {
 
       const wrapper = mount(SettingsView, {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       })
 
       await wrapper.get('[data-testid="open-model-folder"]').trigger('click')
 
-      expect(message.error).toHaveBeenCalledWith('打开文件夹失败: Folder not found')
+      expect(message.error).toHaveBeenCalledWith(
+        i18n.global.t('settings.messages.openFolderFailed', { error: 'Folder not found' })
+      )
     })
 
     it('opens output folder when button is clicked', async () => {
@@ -106,14 +121,14 @@ describe('SettingsView', () => {
 
       const wrapper = mount(SettingsView, {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       })
 
       await wrapper.get('[data-testid="open-output-folder"]').trigger('click')
 
       expect(mockOpenOutputFolder).toHaveBeenCalled()
-      expect(message.success).toHaveBeenCalledWith('已打开输出文件夹')
+      expect(message.success).toHaveBeenCalledWith(i18n.global.t('settings.messages.folderOpened'))
     })
 
     it('shows error when opening output folder fails', async () => {
@@ -121,13 +136,15 @@ describe('SettingsView', () => {
 
       const wrapper = mount(SettingsView, {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       })
 
       await wrapper.get('[data-testid="open-output-folder"]').trigger('click')
 
-      expect(message.error).toHaveBeenCalledWith('打开文件夹失败: Path not found')
+      expect(message.error).toHaveBeenCalledWith(
+        i18n.global.t('settings.messages.openFolderFailed', { error: 'Path not found' })
+      )
     })
   })
 })

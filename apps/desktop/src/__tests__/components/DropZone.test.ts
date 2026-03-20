@@ -4,6 +4,7 @@ import { defineComponent } from 'vue'
 import { NMessageProvider } from 'naive-ui'
 
 import DropZone from '@/components/DropZone.vue'
+import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { useQueueStore } from '@/stores/queue'
 
@@ -33,7 +34,7 @@ describe('DropZone', () => {
       }),
       {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       }
     )

@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 import QueueTable from '@/components/QueueTable.vue'
+import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { useQueueStore } from '@/stores/queue'
 
@@ -45,12 +46,12 @@ describe('QueueTable', () => {
 
     const wrapper = mount(QueueTable, {
       global: {
-        plugins: [naive]
+        plugins: [naive, i18n]
       }
     })
 
-    expect(wrapper.text()).toContain('批次任务列表')
-    expect(wrapper.text()).toContain('总计 2 项')
+    expect(wrapper.text()).toContain(i18n.global.t('components.queueTable.title'))
+    expect(wrapper.text()).toContain(i18n.global.t('components.queueTable.summaryTotal', { count: 2 }))
 
     const cards = wrapper.findAll('.queue-item')
     expect(cards).toHaveLength(2)
@@ -58,11 +59,11 @@ describe('QueueTable', () => {
     const pendingButtons = cards[0].findAll('button')
     await pendingButtons[0].trigger('click')
     expect(store.items[0].paused).toBe(true)
-    expect(store.items[0].message).toBe('已暂停')
+    expect(store.items[0].message).toBe('queue.messages.paused')
 
     await pendingButtons[1].trigger('click')
     expect(store.items[0].status).toBe('error')
-    expect(store.items[0].error).toBe('已取消')
+    expect(store.items[0].error).toBe('queue.messages.cancelled')
 
     const errorButtons = cards[1].findAll('button')
     await errorButtons[2].trigger('click')

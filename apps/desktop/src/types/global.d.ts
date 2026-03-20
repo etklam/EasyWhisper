@@ -55,11 +55,11 @@ declare global {
       getOutputFormats: () => Promise<OutputFormat[]>
       startYtDlp: (payload: YtDlpStartPayload) => Promise<YtDlpStartResponse>
       cancelYtDlp: (payload: YtDlpCancelPayload) => Promise<YtDlpCancelResponse>
-      downloadManagedYtDlp: (payload?: { signal?: string }) => Promise<ToolOperationResponse<YtDlpInstallation>>
-      updateManagedYtDlp: (payload?: { signal?: string }) => Promise<ToolOperationResponse<YtDlpInstallation>>
+      downloadManagedYtDlp: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<YtDlpInstallation>>
+      updateManagedYtDlp: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<YtDlpInstallation>>
       detectManagedYtDlp: () => Promise<YtDlpInstallation>
-      downloadManagedFfmpeg: (payload?: { signal?: string }) => Promise<ToolOperationResponse<FfmpegInstallation>>
-      updateManagedFfmpeg: (payload?: { signal?: string }) => Promise<ToolOperationResponse<FfmpegInstallation>>
+      downloadManagedFfmpeg: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<FfmpegInstallation>>
+      updateManagedFfmpeg: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<FfmpegInstallation>>
       detectManagedFfmpeg: () => Promise<FfmpegInstallation>
       detectSystemYtDlp: () => Promise<YtDlpInstallation>
       detectSystemFfmpeg: () => Promise<FfmpegInstallation>

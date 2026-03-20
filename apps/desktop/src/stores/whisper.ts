@@ -22,6 +22,7 @@ export type RuntimeTask = WhisperTask & {
   url?: string
   progress: number
   message?: string
+  messageParams?: Record<string, string | number>
   transcript?: string
   aiResults?: Partial<Record<AiTaskType, string>>
 }
@@ -105,7 +106,8 @@ export const useWhisperStore = defineStore('whisper', {
           if (!task) return
           task.progress = Math.max(task.progress, event.progress)
           task.status = 'running'
-          task.message = event.message ?? `Whisper ${event.stage}`
+          task.message = event.message ?? 'queue.messages.transcribing'
+          task.messageParams = undefined
         })
       )
 
@@ -116,7 +118,8 @@ export const useWhisperStore = defineStore('whisper', {
           task.outputPath = event.outputPath
           task.transcript = event.text
           task.progress = 100
-          task.message = `Transcribed in ${(event.durationMs / 1000).toFixed(1)}s`
+          task.message = 'queue.messages.complete'
+          task.messageParams = { duration: (event.durationMs / 1000).toFixed(1) }
           if (this.shouldRunAi()) {
             void this.runAiForTask(task, event.text)
           } else {
@@ -132,6 +135,7 @@ export const useWhisperStore = defineStore('whisper', {
           task.status = 'error'
           task.errorMessage = event.error
           task.message = event.error
+          task.messageParams = undefined
         })
       )
 
@@ -141,7 +145,8 @@ export const useWhisperStore = defineStore('whisper', {
           if (!task) return
           task.status = 'running'
           task.progress = Math.max(0, Math.min(99, event.progress))
-          task.message = `Downloading audio ${event.progress.toFixed(0)}%`
+          task.message = 'queue.messages.downloading'
+          task.messageParams = { progress: event.progress.toFixed(0) }
         })
       )
 
@@ -151,7 +156,8 @@ export const useWhisperStore = defineStore('whisper', {
           if (!task) return
           task.audioPath = event.outputPath
           task.progress = 0
-          task.message = 'Download complete, starting transcription'
+          task.message = 'queue.messages.downloadComplete'
+          task.messageParams = undefined
           void this.startWhisperTask(task)
         })
       )
@@ -163,6 +169,7 @@ export const useWhisperStore = defineStore('whisper', {
           task.status = 'error'
           task.errorMessage = event.error
           task.message = event.error
+          task.messageParams = undefined
         })
       )
 
@@ -264,7 +271,8 @@ export const useWhisperStore = defineStore('whisper', {
     async startYtDlpTask(task: RuntimeTask) {
       if (!task.url) return
       task.status = 'running'
-      task.message = 'Downloading audio'
+      task.message = 'queue.messages.waitingDownload'
+      task.messageParams = undefined
       try {
         await window.fosswhisper.startYtDlp({
           taskId: task.id,
@@ -274,16 +282,19 @@ export const useWhisperStore = defineStore('whisper', {
         })
       } catch (error) {
         task.status = 'error'
-        task.error = error instanceof Error ? error.message : String(error)
-        task.message = task.error
-        this.pumpQueue()
+        task.errorMessage = error instanceof Error ? error.message : String(error)
+        task.message = task.errorMessage
+        task.messageParams = undefined
       }
     },
 
     async startWhisperTask(task: RuntimeTask) {
       task.status = 'running'
       task.progress = 0
-      task.message = task.source === 'ytdlp' ? 'Preparing transcription' : 'Starting transcription'
+      task.message = task.source === 'ytdlp'
+        ? 'queue.messages.startTranscribingDownload'
+        : 'queue.messages.startTranscribing'
+      task.messageParams = undefined
       await window.fosswhisper.startWhisper({
         taskId: task.id,
         audioPath: task.audioPath,
@@ -297,7 +308,8 @@ export const useWhisperStore = defineStore('whisper', {
 
     async runAiForTask(task: RuntimeTask, text: string) {
       task.status = 'running'
-      task.message = 'Running AI post-processing'
+      task.message = 'queue.status.ai'
+      task.messageParams = undefined
 
       const enabledTasks = this.getEnabledAiTasks()
       if (enabledTasks.length === 0 || !this.settings.aiModel) {
@@ -322,7 +334,8 @@ export const useWhisperStore = defineStore('whisper', {
         if ('error' in result) {
           task.status = 'error'
           task.errorMessage = result.error
-          task.message = `AI ${taskType} failed: ${result.error}`
+          task.message = 'queue.messages.aiFailed'
+          task.messageParams = { error: result.error }
           return
         }
 
@@ -337,7 +350,8 @@ export const useWhisperStore = defineStore('whisper', {
       }
 
       task.aiResults = aiResults
-      task.message = 'Workflow complete'
+      task.message = 'queue.messages.transcriptionAiComplete'
+      task.messageParams = undefined
       task.status = 'completed'
     },
 

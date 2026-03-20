@@ -16,6 +16,7 @@ vi.mock('naive-ui', async () => {
 })
 
 import AiQuickToggles from '@/components/AiQuickToggles.vue'
+import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { useWhisperStore } from '@/stores/whisper'
 
@@ -28,7 +29,7 @@ describe('AiQuickToggles', () => {
   it('renders AI step toggles (correct, translate, summary)', () => {
     const wrapper = mount(AiQuickToggles, {
       global: {
-        plugins: [naive]
+        plugins: [naive, i18n]
       }
     })
 
@@ -44,20 +45,20 @@ describe('AiQuickToggles', () => {
 
     const wrapper = mount(AiQuickToggles, {
       global: {
-        plugins: [naive]
+        plugins: [naive, i18n]
       }
     })
 
     await wrapper.find('[data-testid="save-ai-settings"]').trigger('click')
 
     expect(updateSettingsSpy).toHaveBeenCalled()
-    expect(message.success).toHaveBeenCalledWith('AI 设置已保存')
+    expect(message.success).toHaveBeenCalledWith(i18n.global.t('components.aiQuickToggles.settingsSaved'))
   })
 
   it('does not include Ollama status or model selection UI', () => {
     const wrapper = mount(AiQuickToggles, {
       global: {
-        plugins: [naive]
+        plugins: [naive, i18n]
       }
     })
 
@@ -73,12 +74,12 @@ describe('AiQuickToggles', () => {
 
     const wrapper = mount(AiQuickToggles, {
       global: {
-        plugins: [naive]
+        plugins: [naive, i18n]
       }
     })
 
     await wrapper.find('[data-testid="save-ai-settings"]').trigger('click')
 
-    expect(message.error).toHaveBeenCalledWith('保存失败，请重试')
+    expect(message.error).toHaveBeenCalledWith(i18n.global.t('components.aiQuickToggles.saveFailed'))
   })
 })

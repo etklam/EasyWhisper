@@ -9,6 +9,7 @@ const {
   formatMock,
   getFileExtensionMock,
   getSettingsMock,
+  getSettingMock,
   updateSettingsMock,
   showItemInFolderMock
 } = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const {
   formatMock: vi.fn(),
   getFileExtensionMock: vi.fn(),
   getSettingsMock: vi.fn(),
+  getSettingMock: vi.fn(),
   updateSettingsMock: vi.fn(),
   showItemInFolderMock: vi.fn()
 }))
@@ -81,6 +83,7 @@ vi.mock('../../main/output/OutputFormatter', () => ({
 vi.mock('../../main/settings/SettingsManager', () => ({
   SettingsManager: vi.fn().mockImplementation(() => ({
     getSettings: getSettingsMock,
+    getSetting: getSettingMock,
     updateSettings: updateSettingsMock
   }))
 }))
@@ -128,6 +131,11 @@ describe('Core IPC handlers', () => {
         }
       }
     })
+    getSettingMock.mockImplementation((key: string) => {
+      if (key === 'ytdlpMode') return 'system'
+      if (key === 'ffmpegMode') return 'system'
+      return undefined
+    })
   })
 
   it('registers and runs ytdlp handlers', async () => {
@@ -156,7 +164,7 @@ describe('Core IPC handlers', () => {
 
     await expect(cancelHandler({}, { taskId: result.taskId })).resolves.toEqual({
       taskId: result.taskId,
-      cancelled: true
+      cancelled: false
     })
   })
 

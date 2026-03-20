@@ -79,8 +79,8 @@
       </div>
     </div>
 
-    <n-text v-if="task.message" depth="3" class="message">{{ task.message }}</n-text>
-    <n-text v-if="task.error" type="error" class="message">{{ task.error }}</n-text>
+    <n-text v-if="task.message" depth="3" class="message">{{ translatedMessage }}</n-text>
+    <n-text v-if="task.error" type="error" class="message">{{ translatedError }}</n-text>
     <n-text v-if="hasAiResults" depth="3" class="message">
       {{ t('components.queueItem.generated', { results: aiResultLabels.join('、') }) }}
     </n-text>
@@ -113,6 +113,8 @@ const hasAiResults = computed(() => Object.keys(props.task.aiResults).length > 0
 const aiResultLabels = computed(() =>
   Object.keys(props.task.aiResults).map((taskType) => aiStepLabel(taskType as AiTaskType))
 )
+const translatedMessage = computed(() => translateMaybeKey(props.task.message, props.task.messageParams))
+const translatedError = computed(() => translateMaybeKey(props.task.error))
 
 const statusLabel = computed(() => {
   const labels: Record<QueueTask['status'], string> = {
@@ -140,6 +142,28 @@ function aiStepLabel(step: AiTaskType): string {
   if (step === 'correct') return t('components.queueItem.stepCorrect')
   if (step === 'translate') return t('components.queueItem.stepTranslate')
   return t('components.queueItem.stepSummary')
+}
+
+function translateMaybeKey(
+  value?: string,
+  params?: Record<string, string | number>
+): string {
+  if (!value) {
+    return ''
+  }
+
+  if (!value.startsWith('queue.')) {
+    return value
+  }
+
+  const resolvedParams = { ...(params ?? {}) } as Record<string, string | number>
+  const stepKey = resolvedParams.stepKey
+  if (typeof stepKey === 'string') {
+    resolvedParams.step = t(stepKey)
+    delete resolvedParams.stepKey
+  }
+
+  return t(value, resolvedParams)
 }
 </script>
 

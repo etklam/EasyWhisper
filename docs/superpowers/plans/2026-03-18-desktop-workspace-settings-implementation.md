@@ -63,7 +63,7 @@
 - Modify: `apps/desktop/src/types/global.d.ts`
 - Test: `apps/desktop/electron/__tests__/ipc/coreHandlers.test.ts`
 
-- [ ] **Step 1: Write failing IPC contract tests for new channels**
+- [x] **Step 1: Write failing IPC contract tests for new channels**
   - In `coreHandlers.test.ts`, add expectations that handlers exist for:
     - `model:open-folder`
     - `settings:open-output-folder`
@@ -75,14 +75,14 @@
   - Run: `pnpm --filter @fosswhisper/desktop test:run apps/desktop/electron/__tests__/ipc/coreHandlers.test.ts`
   - Expected: FAIL because channels/types/APIs are not implemented.
 
-- [ ] **Step 3: Add shared channel and type definitions (minimal)**
+- [x] **Step 3: Add shared channel and type definitions (minimal)**
   - Add `MODEL_OPEN_FOLDER` and `SETTINGS_OPEN_OUTPUT_FOLDER` to `IPC_CHANNELS`.
   - Add typed payload/response interfaces in `packages/shared/src/types.ts`.
   - Update preload API surface and renderer typings to expose:
     - `openModelFolder(): Promise<OpenFolderResponse>`
     - `openOutputFolder(): Promise<OpenFolderResponse>`
 
-- [ ] **Step 4: Run targeted tests and typecheck**
+- [x] **Step 4: Run targeted tests and typecheck**
   - Run: `pnpm --filter @fosswhisper/desktop test:run apps/desktop/electron/__tests__/ipc/coreHandlers.test.ts`
   - Run: `pnpm --filter @fosswhisper/desktop typecheck`
   - Expected: still failing on handler logic (next task), but no type export/import errors.
@@ -102,7 +102,7 @@ git commit -m "feat(desktop): add folder-open IPC contracts"
 - Modify: `apps/desktop/electron/main/ipc/settings.ts`
 - Test: `apps/desktop/electron/__tests__/ipc/coreHandlers.test.ts`
 
-- [ ] **Step 1: Write failing test for outputDir fallback behavior**
+- [x] **Step 1: Write failing test for outputDir fallback behavior**
   - Add test cases to assert:
     1. output folder handler uses non-empty `outputDir` from settings.
     2. output folder handler falls back to default output path when `outputDir` is empty.
@@ -112,21 +112,21 @@ git commit -m "feat(desktop): add folder-open IPC contracts"
   - Run: `pnpm --filter @fosswhisper/desktop test:run apps/desktop/electron/__tests__/ipc/coreHandlers.test.ts`
   - Expected: FAIL due to missing handler/path resolution.
 
-- [ ] **Step 3: Implement model folder handler**
+- [x] **Step 3: Implement model folder handler**
   - In `modelHandlers.ts`:
     - Resolve model dir from same base used by model download (`app.getPath('userData')/models`).
     - Ensure dir exists before opening.
     - Open via Electron shell (`showItemInFolder` or `openPath` consistently).
     - Return typed success/failure response.
 
-- [ ] **Step 4: Implement output folder handler with fallback**
+- [x] **Step 4: Implement output folder handler with fallback**
   - In `settings.ts`:
     - Read current settings from `SettingsManager`.
     - Use `settings.outputDir` when non-empty.
     - Else fallback to app default output dir used by workflow.
     - Ensure directory exists, then open folder, and return typed response.
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
   - Run: `pnpm --filter @fosswhisper/desktop test:run apps/desktop/electron/__tests__/ipc/coreHandlers.test.ts`
   - Expected: PASS for new handler cases.
 
@@ -190,7 +190,7 @@ git commit -m "feat(desktop): add settings page and top-level navigation"
 - Test: `apps/desktop/src/__tests__/components/ImportPanel.test.ts`
 - Test: `apps/desktop/src/__tests__/components/DropZone.test.ts` (adjust selectors if structure changes)
 
-- [ ] **Step 1: Write failing component tests for unified import panel**
+- [x] **Step 1: Write failing component tests for unified import panel**
   - Test cases:
     - Drag/drop valid+invalid files enqueues only supported files.
     - URL input submit enqueues parsed URLs.
@@ -200,15 +200,15 @@ git commit -m "feat(desktop): add settings page and top-level navigation"
   - Run: `pnpm --filter @fosswhisper/desktop test:run apps/desktop/src/__tests__/components/ImportPanel.test.ts`
   - Expected: FAIL because `ImportPanel` does not exist yet.
 
-- [ ] **Step 3: Implement `ImportPanel.vue` (minimal composition)**
+- [x] **Step 3: Implement `ImportPanel.vue` (minimal composition)**
   - Compose existing drag-drop behavior and URL batch input behavior.
   - Reuse queue store methods; do not alter queue pipeline logic.
 
-- [ ] **Step 4: Implement `AiQuickToggles.vue` and wire to Home**
+- [x] **Step 4: Implement `AiQuickToggles.vue` and wire to Home**
   - Home must keep AI checkbox controls for frequent actions.
   - Keep control scope limited to toggles and save action (no heavy setup UI).
 
-- [ ] **Step 5: Update Home layout to final kept blocks**
+- [x] **Step 5: Update Home layout to final kept blocks**
   - Keep only:
     - ImportPanel
     - QueueTable
@@ -216,7 +216,7 @@ git commit -m "feat(desktop): add settings page and top-level navigation"
     - AiQuickToggles
   - Remove model download/setup-heavy sections from Home.
 
-- [ ] **Step 6: Run component tests and typecheck**
+- [x] **Step 6: Run component tests and typecheck**
   - Run: `pnpm --filter @fosswhisper/desktop test:run apps/desktop/src/__tests__/components/DropZone.test.ts apps/desktop/src/__tests__/components/ImportPanel.test.ts`
   - Run: `pnpm --filter @fosswhisper/desktop typecheck`
   - Expected: PASS for import/toggle/home composition tests.
@@ -239,7 +239,7 @@ git commit -m "refactor(desktop): simplify home workspace layout"
 - Test: `apps/desktop/src/__tests__/stores/whisper.test.ts` (if store wrappers added)
 - Test: `apps/desktop/src/__tests__/components/*` for settings interactions
 
-- [ ] **Step 1: Write failing tests for folder action buttons in Settings**
+- [x] **Step 1: Write failing tests for folder action buttons in Settings**
   - Validate click triggers:
     - `window.fosswhisper.openModelFolder()`
     - `window.fosswhisper.openOutputFolder()`
@@ -249,16 +249,16 @@ git commit -m "refactor(desktop): simplify home workspace layout"
   - Run: `pnpm --filter @fosswhisper/desktop test:run`
   - Expected: FAIL due to missing button wiring or APIs.
 
-- [ ] **Step 3: Implement Settings UI sections exactly per approved IA**
+- [x] **Step 3: Implement Settings UI sections exactly per approved IA**
   - Model settings section: model list/download + model path + open model folder.
   - Transcription settings section: threads/language/metal/outputDir.
   - Download settings section: ytdlp format/cookies + open output folder.
 
-- [ ] **Step 4: Ensure output folder action semantics**
+- [x] **Step 4: Ensure output folder action semantics**
   - Keep renderer simple; main process owns fallback resolution.
   - Display concise success/error message to user.
 
-- [ ] **Step 5: Run tests/typecheck**
+- [x] **Step 5: Run tests/typecheck**
   - Run: `pnpm --filter @fosswhisper/desktop test:run`
   - Run: `pnpm --filter @fosswhisper/desktop typecheck`
   - Expected: PASS across settings UI + IPC integration assumptions.
@@ -276,7 +276,7 @@ git commit -m "feat(desktop): move setup controls into settings page"
 **Files:**
 - Modify (if needed): affected tests only
 
-- [ ] **Step 1: Run focused desktop test suite**
+- [x] **Step 1: Run focused desktop test suite**
   - Run: `pnpm --filter @fosswhisper/desktop test:run`
   - Expected: PASS.
 
@@ -305,3 +305,13 @@ git commit -m "test(desktop): finalize workspace/settings UX regression coverage
 - Keep refactor scoped to UX placement and folder actions only (no pipeline rewrites).
 - Prefer reusing existing stores and methods; avoid introducing parallel state paths.
 - If a section starts expanding, split small presentational subcomponents rather than increasing `HomeView.vue` or `SettingsView.vue` complexity.
+
+---
+
+## Remaining Outstanding
+
+- Decide whether to create the intermediate commits listed in Task 1, Task 2, Task 3, Task 4, and Task 5.
+- Complete Task 6 final verification:
+  - workspace typecheck
+  - manual verification checklist for navigation, folder-open actions, and import workflow
+- Apply any verification fixes and optionally create the final regression-coverage commit.

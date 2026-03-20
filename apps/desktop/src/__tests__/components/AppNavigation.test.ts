@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 
 import App from '@/App.vue'
+import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { router } from '@/router'
 
@@ -33,7 +34,7 @@ describe('App navigation shell', () => {
 
     const wrapper = mount(App, {
       global: {
-        plugins: [createPinia(), router, naive]
+        plugins: [createPinia(), router, naive, i18n]
       }
     })
 
@@ -52,7 +53,7 @@ describe('App navigation shell', () => {
 
     const wrapper = mount(App, {
       global: {
-        plugins: [createPinia(), router, naive]
+        plugins: [createPinia(), router, naive, i18n]
       }
     })
 
@@ -65,4 +66,3 @@ describe('App navigation shell', () => {
     })
   })
 })
-

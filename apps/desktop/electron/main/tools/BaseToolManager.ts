@@ -236,7 +236,7 @@ export abstract class BaseToolManager<TInstallation> {
     if (!response.ok || !response.body) {
       throw new Error(`Failed to download asset: ${response.status} ${response.statusText}`)
     }
-    const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>)
+    const nodeStream = Readable.fromWeb(response.body as any)
     const fileStream = createWriteStream(destination)
     let downloaded = 0
     const abortHandler = (): void => {

@@ -68,15 +68,15 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD, payload),
   cancelYtDlp: (payload: YtDlpCancelPayload): Promise<YtDlpCancelResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_CANCEL, payload),
-  downloadManagedYtDlp: (payload?: { signal?: string }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
+  downloadManagedYtDlp: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD_MANAGED, payload),
-  updateManagedYtDlp: (payload?: { signal?: string }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
+  updateManagedYtDlp: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_UPDATE_MANAGED, payload),
   detectManagedYtDlp: (): Promise<YtDlpInstallation> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT_MANAGED),
-  downloadManagedFfmpeg: (payload?: { signal?: string }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
+  downloadManagedFfmpeg: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DOWNLOAD_MANAGED, payload),
-  updateManagedFfmpeg: (payload?: { signal?: string }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
+  updateManagedFfmpeg: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_UPDATE_MANAGED, payload),
   detectManagedFfmpeg: (): Promise<FfmpegInstallation> =>
     ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT_MANAGED),

@@ -25,6 +25,7 @@ export interface QueueTask {
   transcript?: string
   error?: string
   message?: string
+  messageParams?: Record<string, string | number>
   paused: boolean
   cancelRequested: boolean
   aiProgress: number
@@ -104,7 +105,8 @@ export const useQueueStore = defineStore('queue', {
 
           item.status = 'transcribing'
           item.transcribeProgress = clampProgress(event.progress)
-          item.message = event.message ?? '正在转录'
+          item.message = event.message ?? 'queue.messages.transcribing'
+          item.messageParams = undefined
         })
       )
 
@@ -138,7 +140,8 @@ export const useQueueStore = defineStore('queue', {
 
           item.status = 'downloading'
           item.downloadProgress = clampProgress(event.progress)
-          item.message = `正在下载音频 ${item.downloadProgress}%`
+          item.message = 'queue.messages.downloading'
+          item.messageParams = { progress: item.downloadProgress }
         })
       )
 
@@ -152,7 +155,8 @@ export const useQueueStore = defineStore('queue', {
 
           item.filePath = event.outputPath
           item.downloadProgress = 100
-          item.message = '下载完成，准备转换音频'
+          item.message = 'queue.messages.downloadComplete'
+          item.messageParams = undefined
           void this.startAudioTask(item, event.outputPath)
         })
       )
@@ -186,7 +190,8 @@ export const useQueueStore = defineStore('queue', {
 
           item.status = 'converting'
           item.downloadProgress = clampProgress(event.progress)
-          item.message = `正在转换音频 ${item.downloadProgress}%`
+          item.message = 'queue.messages.converting'
+          item.messageParams = { progress: item.downloadProgress }
         })
       )
 
@@ -218,16 +223,18 @@ export const useQueueStore = defineStore('queue', {
       if (!item.paused) {
         item.paused = true
         if (item.status === 'pending') {
-          item.message = '已暂停'
+          item.message = 'queue.messages.paused'
         } else {
-          item.message = '当前任务无法立即暂停，稍后可重试'
+          item.message = 'queue.messages.cannotPause'
         }
+        item.messageParams = undefined
         return
       }
 
       item.paused = false
       if (item.status === 'pending') {
         item.message = undefined
+        item.messageParams = undefined
       }
       this.pumpQueue()
     },
@@ -248,9 +255,10 @@ export const useQueueStore = defineStore('queue', {
       item.cancelRequested = true
       item.paused = false
       item.status = 'error'
-      item.error = '已取消'
-      item.message = '已取消'
-      item.aiError = '已取消'
+      item.error = 'queue.messages.cancelled'
+      item.message = 'queue.messages.cancelled'
+      item.messageParams = undefined
+      item.aiError = 'queue.messages.cancelled'
       this.pumpQueue()
     },
 
@@ -268,6 +276,7 @@ export const useQueueStore = defineStore('queue', {
       item.transcript = undefined
       item.error = undefined
       item.message = undefined
+      item.messageParams = undefined
       item.paused = false
       item.cancelRequested = false
       item.aiProgress = 0
@@ -313,8 +322,9 @@ export const useQueueStore = defineStore('queue', {
 
       if (!nextItem.filePath) {
         nextItem.status = 'error'
-        nextItem.error = '找不到可处理的文件'
+        nextItem.error = 'queue.messages.fileNotFound'
         nextItem.message = nextItem.error
+        nextItem.messageParams = undefined
         this.pumpQueue()
         return
       }
@@ -325,7 +335,8 @@ export const useQueueStore = defineStore('queue', {
     async startYtDlpTask(item: QueueTask) {
       const settings = this.getSettings()
       item.status = 'downloading'
-      item.message = '等待下载音频'
+      item.message = 'queue.messages.waitingDownload'
+      item.messageParams = undefined
 
       try {
         await window.fosswhisper.startYtDlp({
@@ -338,6 +349,7 @@ export const useQueueStore = defineStore('queue', {
         item.status = 'error'
         item.error = toErrorMessage(error)
         item.message = item.error
+        item.messageParams = undefined
         this.pumpQueue()
       }
     },
@@ -350,15 +362,19 @@ export const useQueueStore = defineStore('queue', {
         }
 
         item.status = 'error'
-        item.error = '找不到可转录的音频文件'
+        item.error = 'queue.messages.audioNotFound'
         item.message = item.error
+        item.messageParams = undefined
         this.pumpQueue()
         return
       }
 
       const settings = this.getSettings()
       item.status = 'transcribing'
-      item.message = item.source === 'ytdlp' ? '开始转录下载内容' : '开始转录'
+      item.message = item.source === 'ytdlp'
+        ? 'queue.messages.startTranscribingDownload'
+        : 'queue.messages.startTranscribing'
+      item.messageParams = undefined
 
       try {
         await window.fosswhisper.startWhisper({
@@ -374,6 +390,7 @@ export const useQueueStore = defineStore('queue', {
         item.status = 'error'
         item.error = toErrorMessage(error)
         item.message = item.error
+        item.messageParams = undefined
         this.pumpQueue()
       }
     },
@@ -386,7 +403,8 @@ export const useQueueStore = defineStore('queue', {
 
       item.status = 'converting'
       item.downloadProgress = 0
-      item.message = '正在转换为 16kHz WAV'
+      item.message = 'queue.messages.convertingToWav'
+      item.messageParams = undefined
 
       try {
         const result = await window.fosswhisper.convertAudio({
@@ -401,7 +419,8 @@ export const useQueueStore = defineStore('queue', {
 
         item.filePath = result.outputPath
         item.downloadProgress = 100
-        item.message = '音频转换完成，准备转录'
+        item.message = 'queue.messages.conversionComplete'
+        item.messageParams = undefined
         await this.startWhisperTask(item)
       } catch (error) {
         if (item.cancelRequested) {
@@ -412,6 +431,7 @@ export const useQueueStore = defineStore('queue', {
         item.status = 'error'
         item.error = toErrorMessage(error)
         item.message = item.error
+        item.messageParams = undefined
         this.pumpQueue()
       }
     },
@@ -436,7 +456,8 @@ export const useQueueStore = defineStore('queue', {
       } catch (error) {
         item.status = 'error'
         item.error = toErrorMessage(error)
-        item.message = `输出格式化失败：${item.error}`
+        item.message = 'queue.messages.outputFormatFailed'
+        item.messageParams = { error: item.error }
         this.pumpQueue()
         return
       }
@@ -451,14 +472,16 @@ export const useQueueStore = defineStore('queue', {
 
         if (enqueued) {
           item.status = 'ai'
-          item.message = '已加入 AI 队列'
+          item.message = 'queue.messages.aiQueuedShort'
+          item.messageParams = undefined
           this.pumpQueue()
           return
         }
       }
 
       item.status = 'done'
-      item.message = `转录完成，用时 ${(event.durationMs / 1000).toFixed(1)} 秒`
+      item.message = 'queue.messages.complete'
+      item.messageParams = { duration: (event.durationMs / 1000).toFixed(1) }
       this.pumpQueue()
     },
 
@@ -472,7 +495,8 @@ export const useQueueStore = defineStore('queue', {
       item.aiProgress = 0
       item.aiCurrentStep = step
       item.aiError = undefined
-      item.message = step ? `AI 排队中，等待执行${getAiStepLabel(step)}` : 'AI 排队中'
+      item.message = step ? 'queue.messages.aiQueued' : 'queue.messages.aiQueuedShort'
+      item.messageParams = step ? { stepKey: getAiStepTranslationKey(step) } : undefined
     },
 
     updateAiProgress(taskId: string, progress: number, step?: AiTaskType) {
@@ -484,9 +508,15 @@ export const useQueueStore = defineStore('queue', {
       item.status = 'ai'
       item.aiProgress = clampProgress(progress)
       item.aiCurrentStep = step
-      item.message = step
-        ? `AI 正在${getAiStepLabel(step)} ${item.aiProgress}%`
-        : `AI 处理中 ${item.aiProgress}%`
+      item.message = step ? 'queue.messages.aiProcessing' : 'queue.messages.aiProcessingShort'
+      item.messageParams = step
+        ? {
+            progress: item.aiProgress,
+            stepKey: getAiStepTranslationKey(step)
+          }
+        : {
+            progress: item.aiProgress
+          }
     },
 
     completeAiTask(taskId: string, results: Partial<Record<AiTaskType, string>>) {
@@ -500,7 +530,8 @@ export const useQueueStore = defineStore('queue', {
       item.aiCurrentStep = undefined
       item.aiError = undefined
       item.status = 'done'
-      item.message = '转录与 AI 处理完成'
+      item.message = 'queue.messages.transcriptionAiComplete'
+      item.messageParams = undefined
     },
 
     failAiTask(taskId: string, error: string) {
@@ -512,7 +543,8 @@ export const useQueueStore = defineStore('queue', {
       item.status = 'error'
       item.error = error
       item.aiError = error
-      item.message = `AI 处理失败：${error}`
+      item.message = 'queue.messages.aiFailed'
+      item.messageParams = { error }
     },
 
     async generateOutputsForTask(outputPath: string) {
@@ -546,10 +578,10 @@ function getEnabledAiTasks(settings: WorkflowSettings): AiTaskType[] {
   return tasks
 }
 
-function getAiStepLabel(step: AiTaskType): string {
-  if (step === 'correct') return '修正'
-  if (step === 'translate') return '翻译'
-  return '摘要'
+function getAiStepTranslationKey(step: AiTaskType): string {
+  if (step === 'correct') return 'queue.messages.aiStep.correct'
+  if (step === 'translate') return 'queue.messages.aiStep.translate'
+  return 'queue.messages.aiStep.summary'
 }
 
 function toErrorMessage(error: unknown): string {

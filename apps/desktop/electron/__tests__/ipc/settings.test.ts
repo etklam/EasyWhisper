@@ -41,12 +41,15 @@ describe('Settings IPC', () => {
       outputFormats: ['txt', 'srt'],
       ytdlpAudioFormat: 'mp3',
       ytdlpCookiesPath: '',
+      ytdlpMode: undefined,
+      ffmpegMode: undefined,
       aiEnabled: true,
       aiModel: 'llama3',
       aiTargetLang: 'zh-TW',
       aiCorrect: true,
       aiTranslate: false,
       aiSummary: true,
+      locale: 'en',
       aiCustomPrompts: {
         summary: 'Summarize: {text}'
       }

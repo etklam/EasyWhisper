@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NMessageProvider } from 'naive-ui'
 
 import ImportPanel from '@/components/ImportPanel.vue'
+import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { useQueueStore } from '@/stores/queue'
 
@@ -34,7 +35,7 @@ describe('ImportPanel', () => {
       }),
       {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       }
     )
@@ -63,7 +64,7 @@ describe('ImportPanel', () => {
       }),
       {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       }
     )
@@ -86,7 +87,7 @@ describe('ImportPanel', () => {
       }),
       {
         global: {
-          plugins: [naive]
+          plugins: [naive, i18n]
         }
       }
     )

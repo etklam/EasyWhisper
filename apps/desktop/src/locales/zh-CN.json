@@ -328,6 +328,7 @@
       "aiQueued": "AI 排队中，等待执行{step}",
       "aiQueuedShort": "AI 排队中",
       "aiProcessing": "AI 正在{step} {progress}%",
+      "aiProcessingShort": "AI 处理中 {progress}%",
       "complete": "完成，用时 {duration} 秒",
       "transcriptionAiComplete": "转录与 AI 处理完成",
       "aiFailed": "AI 处理失败：{error}",
