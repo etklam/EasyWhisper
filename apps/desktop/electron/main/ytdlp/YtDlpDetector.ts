@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
 import type { YtDlpInstallation } from '@shared/types'
@@ -75,8 +75,11 @@ export class YtDlpDetector {
   private async findInCommonPaths(): Promise<{ path: string; source: string } | null> {
     const commonPaths = this.getCommonPaths()
 
-    for (const { path: checkPath, source } of commonPaths) {
-      if (existsSync(checkPath)) {
+    for (const { path: checkPathPattern, source } of commonPaths) {
+      for (const checkPath of expandPathPattern(checkPathPattern)) {
+        if (!existsSync(checkPath)) {
+          continue
+        }
         // 驗證是否可執行
         const test = spawnSync(checkPath, ['--version'], { timeout: 5000 })
         if (test.status === 0) {
@@ -177,6 +180,49 @@ export class YtDlpDetector {
       return null
     }
   }
+}
+
+export function expandPathPattern(pattern: string): string[] {
+  const normalized = path.normalize(pattern)
+  if (!/[*?]/.test(normalized)) {
+    return [normalized]
+  }
+
+  const parsed = path.parse(normalized)
+  const segments = normalized.slice(parsed.root.length).split(path.sep).filter(Boolean)
+  let candidates = [parsed.root || '.']
+
+  for (const segment of segments) {
+    if (!/[*?]/.test(segment)) {
+      candidates = candidates.map((base) => path.join(base, segment))
+      continue
+    }
+
+    const matcher = wildcardToRegExp(segment)
+    const next: string[] = []
+
+    for (const base of candidates) {
+      try {
+        const entries = readdirSync(base, { withFileTypes: true })
+        for (const entry of entries) {
+          if (matcher.test(entry.name)) {
+            next.push(path.join(base, entry.name))
+          }
+        }
+      } catch {
+        // Ignore unreadable/non-existent path prefixes.
+      }
+    }
+
+    candidates = next
+  }
+
+  return candidates
+}
+
+function wildcardToRegExp(segment: string): RegExp {
+  const escaped = segment.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
+  return new RegExp(`^${escaped.replaceAll('*', '.*')}$`, 'i')
 }
 
 /**

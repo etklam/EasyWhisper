@@ -106,6 +106,16 @@ pnpm -r dev
 pnpm -r build
 ```
 
+### Windows 开发
+```bash
+pnpm --filter @fosswhisper/desktop dev
+```
+
+### Windows 打包
+```bash
+pnpm package:win
+```
+
 ---
 
 ## 📊 项目状态
@@ -115,7 +125,7 @@ pnpm -r build
 | Phase 1 - Mac 基础建设 | ✅ 完成 | 100% |
 | Phase 2 - Core 功能实现 | ✅ 完成 | 100% |
 | Phase 3 - AI 整合 | ✅ 完成 | 100% |
-| Phase 4 - Windows 移植 | ⏳ 未开始 | 0% |
+| Phase 4 - Windows 移植 | 🚧 进行中 | 10% |
 | Phase 5 - 打包和发布 | ⏳ 未开始 | 0% |
 
 **总体完成度：** ~60%
@@ -129,7 +139,7 @@ pnpm -r build
 - ✅ Whisper 转录
 - ✅ 批次处理
 - ✅ AI 整合
-- ⏳ Windows 移植
+- 🚧 Windows 移植
 - ⏳ 打包和发布
 
 ### [v0.2.0] - 计划

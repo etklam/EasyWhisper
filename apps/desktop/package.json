@@ -11,6 +11,8 @@
     "build": "electron-vite build",
     "package:mac:dir": "pnpm run build && electron-builder --mac dir",
     "package:mac": "pnpm run build && electron-builder --mac dir dmg",
+    "package:win:dir": "pnpm run build && electron-builder --win dir",
+    "package:win": "pnpm run build && electron-builder --win nsis",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest",
     "test:run": "vitest run"
@@ -59,8 +61,20 @@
         "dmg"
       ]
     },
+    "win": {
+      "target": [
+        "dir",
+        "nsis"
+      ]
+    },
     "dmg": {
       "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
     }
   }
 }
