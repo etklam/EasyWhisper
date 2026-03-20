@@ -1,9 +1,9 @@
 <template>
-  <n-card title="AI 功能面板" class="ai-panel">
+  <n-card :title="t('components.aiPanel.title')" class="ai-panel">
     <div class="panel-head">
       <div>
         <div class="status-row">
-          <n-text depth="3">Ollama 状态</n-text>
+          <n-text depth="3">{{ t('components.aiPanel.ollamaStatus') }}</n-text>
           <n-tag :type="statusTagType">{{ statusLabel }}</n-tag>
         </div>
         <n-text depth="3">
@@ -11,7 +11,7 @@
         </n-text>
       </div>
       <n-button size="small" secondary :loading="aiStore.loadingModels" @click="refreshOllama">
-        刷新
+        {{ t('components.aiPanel.refresh') }}
       </n-button>
     </div>
 
@@ -21,82 +21,84 @@
       <n-form-item>
         <div class="switch-row">
           <div>
-            <n-text strong>启用 AI 后处理</n-text>
-            <div class="switch-hint">转录完成后自动进入 AI 队列</div>
+            <n-text strong>{{ t('components.aiPanel.enableAiPost') }}</n-text>
+            <div class="switch-hint">{{ t('components.aiPanel.enableAiHint') }}</div>
           </div>
           <n-switch v-model:value="localSettings.aiEnabled" />
         </div>
       </n-form-item>
 
-      <n-form-item label="Ollama 模型">
+      <n-form-item :label="t('components.aiPanel.ollamaModel')">
         <n-select
           v-model:value="localSettings.aiModel"
           :options="modelOptions"
-          placeholder="请选择模型"
+          :placeholder="t('components.aiPanel.selectModelPlaceholder')"
           :disabled="aiStore.connectionStatus !== 'connected'"
           clearable
         />
       </n-form-item>
 
-      <n-form-item label="翻译目标语言">
+      <n-form-item :label="t('components.aiPanel.targetLanguage')">
         <n-select v-model:value="localSettings.aiTargetLang" :options="targetLanguageOptions" />
       </n-form-item>
 
-      <n-form-item label="AI 步骤">
+      <n-form-item :label="t('components.aiPanel.aiSteps')">
         <div class="step-grid">
           <label class="step-toggle">
-            <span>修正</span>
+            <span>{{ t('components.aiPanel.stepCorrect') }}</span>
             <n-switch v-model:value="localSettings.aiCorrect" />
           </label>
           <label class="step-toggle">
-            <span>翻译</span>
+            <span>{{ t('components.aiPanel.stepTranslate') }}</span>
             <n-switch v-model:value="localSettings.aiTranslate" />
           </label>
           <label class="step-toggle">
-            <span>摘要</span>
+            <span>{{ t('components.aiPanel.stepSummary') }}</span>
             <n-switch v-model:value="localSettings.aiSummary" />
           </label>
         </div>
       </n-form-item>
 
-      <n-form-item label="修正 Prompt">
+      <n-form-item :label="t('components.aiPanel.correctPrompt')">
         <n-input
           v-model:value="localSettings.aiCustomPrompts.correct"
           type="textarea"
-          placeholder="留空则使用预设 prompt"
+          :placeholder="t('components.aiPanel.promptPlaceholder')"
           :autosize="{ minRows: 3, maxRows: 6 }"
         />
       </n-form-item>
 
-      <n-form-item label="翻译 Prompt">
+      <n-form-item :label="t('components.aiPanel.translatePrompt')">
         <n-input
           v-model:value="localSettings.aiCustomPrompts.translate"
           type="textarea"
-          placeholder="留空则使用预设 prompt"
+          :placeholder="t('components.aiPanel.promptPlaceholder')"
           :autosize="{ minRows: 3, maxRows: 6 }"
         />
       </n-form-item>
 
-      <n-form-item label="摘要 Prompt">
+      <n-form-item :label="t('components.aiPanel.summaryPrompt')">
         <n-input
           v-model:value="localSettings.aiCustomPrompts.summary"
           type="textarea"
-          placeholder="留空则使用预设 prompt"
+          :placeholder="t('components.aiPanel.promptPlaceholder')"
           :autosize="{ minRows: 3, maxRows: 6 }"
         />
       </n-form-item>
 
-      <n-button type="primary" @click="applySettings">保存 AI 设置</n-button>
+      <n-button type="primary" @click="applySettings">{{ t('components.aiPanel.saveSettings') }}</n-button>
     </n-form>
 
     <n-divider />
 
     <div class="queue-head">
-      <n-text strong>AI 任务状态</n-text>
-      <n-text depth="3">等待 {{ aiStore.pendingCount }} 项，执行中 {{ aiStore.activeCount }} 项</n-text>
+      <n-text strong>{{ t('components.aiPanel.aiTaskStatus') }}</n-text>
+      <n-text depth="3">
+        {{ t('components.aiPanel.waitingCount', { count: aiStore.pendingCount, active: aiStore.activeCount }) }}
+      </n-text>
     </div>
 
-    <n-empty v-if="aiStore.workflows.length === 0" description="暂无 AI 任务" size="small" />
+    <n-empty v-if="aiStore.workflows.length === 0" :description="t('components.aiPanel.noAiTasks')" size="small" />
     <div v-else class="workflow-list">
       <div v-for="workflow in aiStore.workflows.slice(0, 6)" :key="workflow.id" class="workflow-item">
         <div class="workflow-meta">
@@ -107,7 +109,11 @@
                 {{ getWorkflowStatusLabel(workflow.status) }}
               </n-tag>
               <n-text depth="3">
-                {{ workflow.currentStep ? `当前步骤：${getStepLabel(workflow.currentStep)}` : '等待中' }}
+                {{
+                  workflow.currentStep
+                    ? t('components.aiPanel.currentStep', { step: getStepLabel(workflow.currentStep) })
+                    : t('components.aiPanel.waiting')
+                }}
               </n-text>
             </div>
           </div>
@@ -139,6 +145,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import { useMessage } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import type { AiTaskType, WorkflowSettings } from '@shared/types'
 import { useAiStore, type AiStepStatus, type AiWorkflowStatus } from '@/stores/ai'
@@ -160,6 +167,7 @@ type AiSettingsForm = Pick<
   }
 }
 
+const { t } = useI18n()
 const whisperStore = useWhisperStore()
 const aiStore = useAiStore()
 const message = useMessage()
@@ -182,10 +190,10 @@ const targetLanguageOptions = [
 ]
 
 const statusLabel = computed(() => {
-  if (aiStore.connectionStatus === 'checking') return '检查中'
-  if (aiStore.connectionStatus === 'connected') return '已连接'
-  if (aiStore.connectionStatus === 'disconnected') return '未连接'
-  return '未检查'
+  if (aiStore.connectionStatus === 'checking') return t('components.aiPanel.statusChecking')
+  if (aiStore.connectionStatus === 'connected') return t('components.aiPanel.statusConnected')
+  if (aiStore.connectionStatus === 'disconnected') return t('components.aiPanel.statusDisconnected')
+  return t('components.aiPanel.statusNotChecked')
 })
 
 const statusTagType = computed(() => {
@@ -197,14 +205,16 @@ const statusTagType = computed(() => {
 
 const statusHint = computed(() => {
   if (aiStore.connectionStatus === 'connected') {
-    return aiStore.models.length > 0 ? `已发现 ${aiStore.models.length} 个模型` : '已连接，但尚未找到模型'
+    return aiStore.models.length > 0
+      ? t('components.aiPanel.hintConnectedFound', { count: aiStore.models.length })
+      : t('components.aiPanel.hintConnectedNotFound')
   }
 
   if (aiStore.connectionStatus === 'disconnected') {
-    return '请确认 Ollama 已启动，并且本机 API 可访问'
+    return t('components.aiPanel.hintDisconnected')
   }
 
-  return '点击刷新以检查 Ollama 状态'
+  return t('components.aiPanel.hintNotChecked')
 })
 
 watch(
@@ -230,17 +240,17 @@ async function applySettings() {
       aiSummary: localSettings.aiSummary,
       aiCustomPrompts: normalizePrompts(localSettings.aiCustomPrompts)
     })
-    message.success('AI 设置已保存')
+    message.success(t('components.aiPanel.settingsSaved'))
   } catch (error) {
     message.error(error instanceof Error ? error.message : String(error))
   }
 }
 
 function getWorkflowStatusLabel(status: AiWorkflowStatus): string {
-  if (status === 'pending') return '排队中'
-  if (status === 'running') return '处理中'
-  if (status === 'done') return '已完成'
-  return '失败'
+  if (status === 'pending') return t('components.aiPanel.workflowStatusPending')
+  if (status === 'running') return t('components.aiPanel.workflowStatusRunning')
+  if (status === 'done') return t('components.aiPanel.workflowStatusDone')
+  return t('components.aiPanel.workflowStatusError')
 }
 
 function getWorkflowTagType(status: AiWorkflowStatus): 'default' | 'warning' | 'success' | 'error' {
@@ -258,9 +268,9 @@ function getStepTagType(status: AiStepStatus): 'default' | 'warning' | 'success'
 }
 
 function getStepLabel(step: AiTaskType): string {
-  if (step === 'correct') return '修正'
-  if (step === 'translate') return '翻译'
-  return '摘要'
+  if (step === 'correct') return t('components.aiPanel.stepCorrect')
+  if (step === 'translate') return t('components.aiPanel.stepTranslate')
+  return t('components.aiPanel.stepSummary')
 }
 
 function createFormState(settings: WorkflowSettings): AiSettingsForm {

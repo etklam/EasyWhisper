@@ -1,5 +1,5 @@
 <template>
-  <n-card title="Whisper 模型">
+  <n-card :title="t('settings.model.whisperModel')">
     <div class="selector">
       <n-radio-group :value="selectedModelId" @update:value="handleSelect">
         <div class="model-list">
@@ -32,7 +32,7 @@
                 :disabled="model.downloaded"
                 @click="download(model.id)"
               >
-                {{ model.downloaded ? '已下载' : '下载模型' }}
+                {{ model.downloaded ? t('components.modelSelector.downloaded') : t('components.modelSelector.download') }}
               </n-button>
             </div>
           </div>
@@ -45,10 +45,12 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import { WHISPER_MODEL_IDS, type WhisperModelId, type WhisperModelInfo } from '@shared/types'
 import { useWhisperStore } from '@/stores/whisper'
 
+const { t } = useI18n()
 const whisperStore = useWhisperStore()
 const message = useMessage()
 
@@ -101,9 +103,9 @@ function isDownloading(modelId: WhisperModelId): boolean {
 
 function getStatusText(modelId: WhisperModelId, downloaded: boolean): string {
   if (isDownloading(modelId)) {
-    return `下载中 ${downloadProgress(modelId)}%`
+    return t('components.modelSelector.downloadingProgress', { progress: downloadProgress(modelId) })
   }
-  return downloaded ? '已下载' : '未下载'
+  return downloaded ? t('components.modelSelector.downloaded') : t('components.modelSelector.notDownloaded')
 }
 
 function getStatusType(modelId: WhisperModelId): 'default' | 'info' | 'success' {
@@ -122,7 +124,7 @@ async function handleSelect(modelId: string) {
 async function download(modelId: WhisperModelId) {
   try {
     await whisperStore.downloadModel(modelId)
-    message.success(`模型 ${MODEL_LABELS[modelId]} 下载完成`)
+    message.success(t('settings.model.downloadComplete', { label: MODEL_LABELS[modelId] }))
   } catch (error) {
     message.error(error instanceof Error ? error.message : String(error))
   }

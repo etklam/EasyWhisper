@@ -3,7 +3,15 @@
     "save": "保存",
     "cancel": "取消",
     "back": "返回",
-    "open": "打开"
+    "open": "打开",
+    "pause": "暂停",
+    "resume": "继续",
+    "retry": "重试",
+    "remove": "移除",
+    "download": "下载",
+    "refresh": "刷新",
+    "select": "选择",
+    "apply": "应用"
   },
   "nav": {
     "home": "工作台",
@@ -43,7 +51,13 @@
     },
     "model": {
       "title": "模型设置",
-      "openFolder": "打开模型文件夹"
+      "openFolder": "打开模型文件夹",
+      "whisperModel": "Whisper 模型",
+      "downloaded": "已下载",
+      "notDownloaded": "未下载",
+      "downloading": "下载中 {progress}%",
+      "downloadModel": "下载模型",
+      "downloadComplete": "模型 {label} 下载完成"
     },
     "transcription": {
       "title": "转录设置",
@@ -53,7 +67,13 @@
       "useMetal": "启用 Metal GPU 加速",
       "save": "保存转录设置",
       "saved": "转录设置已保存",
-      "saveFailed": "保存失败，请重试"
+      "saveFailed": "保存失败，请重试",
+      "modelPath": "模型路径",
+      "modelPathPlaceholder": "/models/ggml-base.bin",
+      "threadsPlaceholder": "线程数",
+      "languagePlaceholder": "auto",
+      "outputDirPlaceholder": "默认：./outputs",
+      "applySettings": "应用设置"
     },
     "download": {
       "title": "下载设置",
@@ -61,6 +81,7 @@
       "audioFormat": "yt-dlp 音频格式",
       "cookiesPath": "yt-dlp Cookies 路径",
       "cookiesPlaceholder": "可选 cookies.txt 路径",
+      "audioFormatPlaceholder": "mp3 / wav / m4a",
       "save": "保存下载设置",
       "saved": "下载设置已保存",
       "saveFailed": "保存失败，请重试"
@@ -73,26 +94,155 @@
   "components": {
     "importPanel": {
       "fileImport": "文件导入",
-      "urlImport": "URL 导入"
+      "urlImport": "URL 导入",
+      "dragDropTitle": "拖放音频或视频文件",
+      "dragDropHint": "支持批量导入，支持格式：{formats}",
+      "selectFiles": "选择文件",
+      "batchUrlTitle": "批量导入 URL",
+      "urlPlaceholder": "每行输入一个 URL，支持以 # 开头的注释行",
+      "urlsParsed": "已解析 {count} 个 URL",
+      "addToQueue": "加入队列"
     },
     "modelSelector": {
       "selectModel": "选择模型",
       "downloading": "下载中...",
-      "download": "下载"
+      "download": "下载",
+      "downloaded": "已下载",
+      "notDownloaded": "未下载",
+      "downloadingProgress": "下载中 {progress}%"
+    },
+    "aiPanel": {
+      "title": "AI 功能面板",
+      "ollamaStatus": "Ollama 状态",
+      "statusChecking": "检查中",
+      "statusConnected": "已连接",
+      "statusDisconnected": "未连接",
+      "statusNotChecked": "未检查",
+      "refresh": "刷新",
+      "enableAiPost": "启用 AI 后处理",
+      "enableAiHint": "转录完成后自动进入 AI 队列",
+      "ollamaModel": "Ollama 模型",
+      "selectModelPlaceholder": "请选择模型",
+      "targetLanguage": "翻译目标语言",
+      "aiSteps": "AI 步骤",
+      "stepCorrect": "修正",
+      "stepTranslate": "翻译",
+      "stepSummary": "摘要",
+      "correctPrompt": "修正 Prompt",
+      "translatePrompt": "翻译 Prompt",
+      "summaryPrompt": "摘要 Prompt",
+      "promptPlaceholder": "留空则使用预设 prompt",
+      "saveSettings": "保存 AI 设置",
+      "settingsSaved": "AI 设置已保存",
+      "aiTaskStatus": "AI 任务状态",
+      "waitingCount": "等待 {count} 项，执行中 {active} 项",
+      "noAiTasks": "暂无 AI 任务",
+      "currentStep": "当前步骤：{step}",
+      "waiting": "等待中",
+      "hintConnectedFound": "已发现 {count} 个模型",
+      "hintConnectedNotFound": "已连接，但尚未找到模型",
+      "hintDisconnected": "请确认 Ollama 已启动，并且本机 API 可访问",
+      "hintNotChecked": "点击刷新以检查 Ollama 状态",
+      "workflowStatusPending": "排队中",
+      "workflowStatusRunning": "处理中",
+      "workflowStatusDone": "已完成",
+      "workflowStatusError": "失败"
+    },
+    "queueTable": {
+      "title": "批次任务列表",
+      "summaryTotal": "总计 {count} 项",
+      "summaryActive": "进行中 {count} 项",
+      "summaryDone": "已完成 {count} 项",
+      "summaryError": "失败 {count} 项",
+      "empty": "队列为空，先导入文件或 URL"
     },
     "queueItem": {
+      "sourceFile": "文件",
+      "sourceUrl": "URL",
       "statusPending": "等待中",
       "statusRunning": "运行中",
       "statusCompleted": "已完成",
-      "statusError": "错误",
-      "remove": "移除"
+      "statusError": "失败",
+      "statusDownloading": "下载中",
+      "statusConverting": "准备中",
+      "statusTranscribing": "转录中",
+      "statusAi": "AI 处理中",
+      "statusDone": "已完成",
+      "statusPaused": "已暂停",
+      "remove": "移除",
+      "pause": "暂停",
+      "resume": "继续",
+      "cancel": "取消",
+      "retry": "重试",
+      "downloadProgress": "下载进度",
+      "transcribeProgress": "转录进度",
+      "aiProgress": "AI 进度",
+      "aiProgressWithStep": "AI 进度（{step}）",
+      "waiting": "等待处理",
+      "generated": "已生成：{results}",
+      "stepCorrect": "修正",
+      "stepTranslate": "翻译",
+      "stepSummary": "摘要"
+    },
+    "urlInput": {
+      "title": "批量导入 URL",
+      "placeholder": "每行输入一个 URL，支持以 # 开头的注释行",
+      "urlsParsed": "已解析 {count} 个 URL",
+      "addToQueue": "加入队列",
+      "previewList": "预览列表",
+      "previewEmpty": "尚未检测到有效 URL",
+      "enterAtLeastOne": "请输入至少一个有效 URL",
+      "addedCount": "已加入 {count} 个 URL"
+    },
+    "aiQuickToggles": {
+      "title": "AI 快捷设置",
+      "enableAiPost": "启用 AI 后处理",
+      "enableAiHint": "转录完成后自动进入 AI 队列",
+      "aiSteps": "AI 步骤",
+      "stepCorrect": "修正",
+      "stepTranslate": "翻译",
+      "stepSummary": "摘要",
+      "saveSettings": "保存 AI 设置",
+      "settingsSaved": "AI 设置已保存",
+      "saveFailed": "保存失败，请重试"
+    },
+    "settingsPanel": {
+      "title": "转录设置",
+      "modelPath": "模型路径",
+      "modelPathPlaceholder": "/models/ggml-base.bin",
+      "threads": "线程数",
+      "language": "语言",
+      "languagePlaceholder": "auto",
+      "outputDir": "输出目录",
+      "outputDirPlaceholder": "默认：./outputs",
+      "ytdlpAudioFormat": "yt-dlp 音频格式",
+      "ytdlpAudioFormatPlaceholder": "mp3 / wav / m4a",
+      "ytdlpCookiesPath": "yt-dlp Cookies 路径",
+      "ytdlpCookiesPathPlaceholder": "可选 cookies.txt 路径",
+      "enableMetal": "启用 Metal GPU 加速",
+      "applySettings": "应用设置"
+    },
+    "taskQueue": {
+      "title": "任务队列",
+      "empty": "暂无任务",
+      "pendingTask": "等待处理",
+      "status": "状态",
+      "transcript": "转录结果"
+    },
+    "urlImportPanel": {
+      "title": "从 URL 导入",
+      "placeholder": "每行粘贴一个视频 URL",
+      "hint": "支持 YouTube 风格的批量输入，忽略注释行。",
+      "queueUrls": "加入队列"
     }
   },
   "messages": {
     "ignoredFiles": "已忽略 {count} 个不支持的文件",
     "noValidFiles": "没有可导入的音频或视频文件",
     "filesAdded": "已加入 {count} 个文件",
-    "error": "错误：{message}"
+    "error": "错误：{message}",
+    "urlsAdded": "已加入 {count} 个 URL",
+    "enterValidUrl": "请输入至少一个有效 URL"
   },
   "queue": {
     "unnamed": "未命名任务",

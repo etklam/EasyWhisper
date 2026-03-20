@@ -1,10 +1,10 @@
 <template>
-  <n-card title="Task Queue" class="queue-card">
-    <n-empty v-if="tasks.length === 0" description="No tasks yet" />
+  <n-card :title="t('components.taskQueue.title')" class="queue-card">
+    <n-empty v-if="tasks.length === 0" :description="t('components.taskQueue.empty')" />
     <n-space v-else vertical size="large">
       <n-card v-for="task in tasks" :key="task.id" size="small">
         <n-space vertical size="small">
-          <n-text strong>{{ task.audioPath || task.url || 'Pending task' }}</n-text>
+          <n-text strong>{{ task.audioPath || task.url || t('components.taskQueue.pendingTask') }}</n-text>
           <n-progress
             type="line"
             :status="toProgressStatus(task.status)"
@@ -17,7 +17,7 @@
             <n-text depth="3">{{ task.message || '-' }}</n-text>
           </n-space>
           <n-text v-if="task.transcript" depth="3" class="preview">
-            Transcript: {{ truncate(task.transcript) }}
+            {{ t('components.taskQueue.transcript') }}: {{ truncate(task.transcript) }}
           </n-text>
           <n-text
             v-for="(result, key) in task.aiResults"
@@ -34,7 +34,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { AiTaskType, WhisperTaskStatus } from '@shared/types'
+
+const { t } = useI18n()
 
 defineProps<{
   tasks: Array<{

@@ -1,13 +1,13 @@
 <template>
-  <n-card title="批次任务列表" class="queue-table">
+  <n-card :title="t('components.queueTable.title')" class="queue-table">
     <div class="summary">
-      <n-text depth="3">总计 {{ queueStore.items.length }} 项</n-text>
-      <n-text depth="3">进行中 {{ activeCount }} 项</n-text>
-      <n-text depth="3">已完成 {{ doneCount }} 项</n-text>
-      <n-text depth="3">失败 {{ errorCount }} 项</n-text>
+      <n-text depth="3">{{ t('components.queueTable.summaryTotal', { count: queueStore.items.length }) }}</n-text>
+      <n-text depth="3">{{ t('components.queueTable.summaryActive', { count: activeCount }) }}</n-text>
+      <n-text depth="3">{{ t('components.queueTable.summaryDone', { count: doneCount }) }}</n-text>
+      <n-text depth="3">{{ t('components.queueTable.summaryError', { count: errorCount }) }}</n-text>
     </div>
 
-    <n-empty v-if="queueStore.items.length === 0" description="队列为空，先导入文件或 URL" />
+    <n-empty v-if="queueStore.items.length === 0" :description="t('components.queueTable.empty')" />
     <div v-else class="list">
       <QueueItem v-for="task in queueStore.items" :key="task.id" :task="task" />
     </div>
@@ -16,10 +16,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import QueueItem from '@/components/QueueItem.vue'
 import { useQueueStore } from '@/stores/queue'
 
+const { t } = useI18n()
 const queueStore = useQueueStore()
 
 const activeCount = computed(() =>

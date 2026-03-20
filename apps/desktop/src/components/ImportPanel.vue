@@ -11,9 +11,11 @@
         @drop.prevent="handleDrop"
         data-testid="drop-target"
       >
-        <p class="title">拖放音频或视频文件</p>
-        <p class="hint">支持批量导入，支持格式：{{ acceptedLabel }}</p>
-        <n-button tertiary type="primary" @click="openFilePicker">选择文件</n-button>
+        <p class="title">{{ t('components.importPanel.dragDropTitle') }}</p>
+        <p class="hint">{{ t('components.importPanel.dragDropHint', { formats: acceptedLabel }) }}</p>
+        <n-button tertiary type="primary" @click="openFilePicker">
+          {{ t('components.importPanel.selectFiles') }}
+        </n-button>
         <input
           ref="inputRef"
           type="file"
@@ -28,16 +30,18 @@
 
       <!-- URL Batch Input -->
       <div class="url-input-area" data-testid="url-input-area">
-        <h3 class="section-title">批量导入 URL</h3>
+        <h3 class="section-title">{{ t('components.importPanel.batchUrlTitle') }}</h3>
         <n-input
           v-model:value="rawUrlValue"
           type="textarea"
-          placeholder="每行输入一个 URL，支持以 # 开头的注释行"
+          :placeholder="t('components.importPanel.urlPlaceholder')"
           :autosize="{ minRows: 4, maxRows: 8 }"
         />
 
         <div class="toolbar">
-          <n-text depth="3">已解析 {{ parsedUrls.length }} 个 URL</n-text>
+          <n-text depth="3">
+            {{ t('components.importPanel.urlsParsed', { count: parsedUrls.length }) }}
+          </n-text>
           <n-button
             type="primary"
             secondary
@@ -45,7 +49,7 @@
             data-testid="submit-urls"
             @click="submitUrls"
           >
-            加入队列
+            {{ t('components.importPanel.addToQueue') }}
           </n-button>
         </div>
       </div>
@@ -56,11 +60,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useMessage } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_VIDEO_FORMATS } from '@shared/formats'
 import { parseUrlList } from '@shared/url'
 import { useQueueStore } from '@/stores/queue'
 
+const { t } = useI18n()
 const queueStore = useQueueStore()
 const message = useMessage()
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -113,18 +119,18 @@ function queueFiles(filePaths: string[]) {
   const rejectedCount = filePaths.length - validFiles.length
 
   if (rejectedCount > 0) {
-    message.warning(`已忽略 ${rejectedCount} 个不支持的文件`)
+    message.warning(t('messages.ignoredFiles', { count: rejectedCount }))
   }
 
   if (validFiles.length === 0) {
     if (filePaths.length > 0) {
-      message.error('没有可导入的音频或视频文件')
+      message.error(t('messages.noValidFiles'))
     }
     return
   }
 
   queueStore.enqueueFiles(validFiles)
-  message.success(`已加入 ${validFiles.length} 个文件`)
+  message.success(t('messages.filesAdded', { count: validFiles.length }))
 }
 
 function isSupportedFile(filePath: string): boolean {
@@ -134,12 +140,12 @@ function isSupportedFile(filePath: string): boolean {
 
 function submitUrls() {
   if (parsedUrls.value.length === 0) {
-    message.error('请输入至少一个有效 URL')
+    message.error(t('messages.enterValidUrl'))
     return
   }
 
   queueStore.enqueueUrls(parsedUrls.value)
-  message.success(`已加入 ${parsedUrls.value.length} 个 URL`)
+  message.success(t('messages.urlsAdded', { count: parsedUrls.value.length }))
   rawUrlValue.value = ''
 }
 </script>

@@ -3,7 +3,16 @@
     "save": "Save",
     "cancel": "Cancel",
     "back": "Back",
-    "open": "Open"
+    "open": "Open",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "remove": "Remove",
+    "download": "Download",
+    "refresh": "Refresh",
+    "select": "Select",
+    "apply": "Apply"
   },
   "nav": {
     "home": "Workspace",
@@ -43,7 +52,13 @@
     },
     "model": {
       "title": "Model Settings",
-      "openFolder": "Open Model Folder"
+      "openFolder": "Open Model Folder",
+      "whisperModel": "Whisper Model",
+      "downloaded": "Downloaded",
+      "notDownloaded": "Not Downloaded",
+      "downloading": "Downloading {progress}%",
+      "downloadModel": "Download Model",
+      "downloadComplete": "{label} model download complete"
     },
     "transcription": {
       "title": "Transcription Settings",
@@ -53,7 +68,13 @@
       "useMetal": "Enable Metal GPU Acceleration",
       "save": "Save Transcription Settings",
       "saved": "Transcription settings saved",
-      "saveFailed": "Save failed, please try again"
+      "saveFailed": "Save failed, please try again",
+      "modelPath": "Model Path",
+      "modelPathPlaceholder": "/models/ggml-base.bin",
+      "threadsPlaceholder": "Number of threads",
+      "languagePlaceholder": "auto",
+      "outputDirPlaceholder": "default: ./outputs",
+      "applySettings": "Apply Settings"
     },
     "download": {
       "title": "Download Settings",
@@ -61,6 +82,7 @@
       "audioFormat": "yt-dlp Audio Format",
       "cookiesPath": "yt-dlp Cookies Path",
       "cookiesPlaceholder": "Optional cookies.txt path",
+      "audioFormatPlaceholder": "mp3 / wav / m4a",
       "save": "Save Download Settings",
       "saved": "Download settings saved",
       "saveFailed": "Save failed, please try again"
@@ -73,26 +95,155 @@
   "components": {
     "importPanel": {
       "fileImport": "File Import",
-      "urlImport": "URL Import"
+      "urlImport": "URL Import",
+      "dragDropTitle": "Drag and drop audio or video files",
+      "dragDropHint": "Batch import supported. Supported formats: {formats}",
+      "selectFiles": "Select Files",
+      "batchUrlTitle": "Batch Import URLs",
+      "urlPlaceholder": "Enter one URL per line, supports # comments",
+      "urlsParsed": "Parsed {count} URLs",
+      "addToQueue": "Add to Queue"
     },
     "modelSelector": {
       "selectModel": "Select Model",
       "downloading": "Downloading...",
-      "download": "Download"
+      "download": "Download",
+      "downloaded": "Downloaded",
+      "notDownloaded": "Not Downloaded",
+      "downloadingProgress": "Downloading {progress}%"
+    },
+    "aiPanel": {
+      "title": "AI Feature Panel",
+      "ollamaStatus": "Ollama Status",
+      "statusChecking": "Checking",
+      "statusConnected": "Connected",
+      "statusDisconnected": "Disconnected",
+      "statusNotChecked": "Not Checked",
+      "refresh": "Refresh",
+      "enableAiPost": "Enable AI Post-Processing",
+      "enableAiHint": "Automatically enter AI queue after transcription",
+      "ollamaModel": "Ollama Model",
+      "selectModelPlaceholder": "Select a model",
+      "targetLanguage": "Translation Target Language",
+      "aiSteps": "AI Steps",
+      "stepCorrect": "Correct",
+      "stepTranslate": "Translate",
+      "stepSummary": "Summary",
+      "correctPrompt": "Correct Prompt",
+      "translatePrompt": "Translate Prompt",
+      "summaryPrompt": "Summary Prompt",
+      "promptPlaceholder": "Leave empty to use default prompt",
+      "saveSettings": "Save AI Settings",
+      "settingsSaved": "AI settings saved",
+      "aiTaskStatus": "AI Task Status",
+      "waitingCount": "Waiting {count}, Running {active}",
+      "noAiTasks": "No AI tasks",
+      "currentStep": "Current step: {step}",
+      "waiting": "Waiting",
+      "hintConnectedFound": "{count} model(s) found",
+      "hintConnectedNotFound": "Connected, but no models found yet",
+      "hintDisconnected": "Please ensure Ollama is running and API is accessible",
+      "hintNotChecked": "Click refresh to check Ollama status",
+      "workflowStatusPending": "Queued",
+      "workflowStatusRunning": "Running",
+      "workflowStatusDone": "Completed",
+      "workflowStatusError": "Failed"
+    },
+    "queueTable": {
+      "title": "Task Queue",
+      "summaryTotal": "Total {count} items",
+      "summaryActive": "Running {count} items",
+      "summaryDone": "Completed {count} items",
+      "summaryError": "Failed {count} items",
+      "empty": "Queue is empty, import files or URLs first"
     },
     "queueItem": {
+      "sourceFile": "File",
+      "sourceUrl": "URL",
       "statusPending": "Pending",
       "statusRunning": "Running",
       "statusCompleted": "Completed",
       "statusError": "Error",
-      "remove": "Remove"
+      "statusDownloading": "Downloading",
+      "statusConverting": "Preparing",
+      "statusTranscribing": "Transcribing",
+      "statusAi": "AI Processing",
+      "statusDone": "Completed",
+      "statusPaused": "Paused",
+      "remove": "Remove",
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
+      "retry": "Retry",
+      "downloadProgress": "Download Progress",
+      "transcribeProgress": "Transcription Progress",
+      "aiProgress": "AI Progress",
+      "aiProgressWithStep": "AI Progress ({step})",
+      "waiting": "Waiting",
+      "generated": "Generated: {results}",
+      "stepCorrect": "Correct",
+      "stepTranslate": "Translate",
+      "stepSummary": "Summary"
+    },
+    "urlInput": {
+      "title": "Batch Import URLs",
+      "placeholder": "Enter one URL per line, supports # comments",
+      "urlsParsed": "Parsed {count} URLs",
+      "addToQueue": "Add to Queue",
+      "previewList": "Preview List",
+      "previewEmpty": "No valid URLs detected yet",
+      "enterAtLeastOne": "Please enter at least one valid URL",
+      "addedCount": "Added {count} URLs"
+    },
+    "aiQuickToggles": {
+      "title": "AI Quick Settings",
+      "enableAiPost": "Enable AI Post-Processing",
+      "enableAiHint": "Automatically enter AI queue after transcription",
+      "aiSteps": "AI Steps",
+      "stepCorrect": "Correct",
+      "stepTranslate": "Translate",
+      "stepSummary": "Summary",
+      "saveSettings": "Save AI Settings",
+      "settingsSaved": "AI settings saved",
+      "saveFailed": "Save failed, please try again"
+    },
+    "settingsPanel": {
+      "title": "Transcription Settings",
+      "modelPath": "Model Path",
+      "modelPathPlaceholder": "/models/ggml-base.bin",
+      "threads": "Threads",
+      "language": "Language",
+      "languagePlaceholder": "auto",
+      "outputDir": "Output Directory",
+      "outputDirPlaceholder": "default: ./outputs",
+      "ytdlpAudioFormat": "yt-dlp Audio Format",
+      "ytdlpAudioFormatPlaceholder": "mp3 / wav / m4a",
+      "ytdlpCookiesPath": "yt-dlp Cookies Path",
+      "ytdlpCookiesPathPlaceholder": "optional cookies.txt path",
+      "enableMetal": "Enable Metal GPU Acceleration",
+      "applySettings": "Apply Settings"
+    },
+    "taskQueue": {
+      "title": "Task Queue",
+      "empty": "No tasks yet",
+      "pendingTask": "Pending task",
+      "status": "Status",
+      "transcript": "Transcript"
+    },
+    "urlImportPanel": {
+      "title": "Import From URLs",
+      "placeholder": "Paste one video URL per line",
+      "hint": "Supports YouTube-style batch input and ignores comment lines.",
+      "queueUrls": "Queue URLs"
     }
   },
   "messages": {
     "ignoredFiles": "Ignored {count} unsupported files",
     "noValidFiles": "No valid audio or video files to import",
     "filesAdded": "Added {count} files",
-    "error": "Error: {message}"
+    "error": "Error: {message}",
+    "urlsAdded": "Added {count} URLs",
+    "enterValidUrl": "Please enter at least one valid URL"
   },
   "queue": {
     "unnamed": "Unnamed Task",

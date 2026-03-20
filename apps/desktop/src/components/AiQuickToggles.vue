@@ -1,35 +1,35 @@
 <template>
-  <n-card title="AI 快捷设置" class="ai-quick-toggles">
+  <n-card :title="t('components.aiQuickToggles.title')" class="ai-quick-toggles">
     <n-form label-placement="top" :model="localSettings">
       <n-form-item>
         <div class="switch-row">
           <div>
-            <n-text strong>启用 AI 后处理</n-text>
-            <div class="switch-hint">转录完成后自动进入 AI 队列</div>
+            <n-text strong>{{ t('components.aiQuickToggles.enableAiPost') }}</n-text>
+            <div class="switch-hint">{{ t('components.aiQuickToggles.enableAiHint') }}</div>
           </div>
           <n-switch v-model:value="localSettings.aiEnabled" />
         </div>
       </n-form-item>
 
-      <n-form-item label="AI 步骤">
+      <n-form-item :label="t('components.aiQuickToggles.aiSteps')">
         <div class="step-grid">
           <label class="step-toggle" data-testid="toggle-correct">
-            <span>修正</span>
+            <span>{{ t('components.aiQuickToggles.stepCorrect') }}</span>
             <n-switch v-model:value="localSettings.aiCorrect" />
           </label>
           <label class="step-toggle" data-testid="toggle-translate">
-            <span>翻译</span>
+            <span>{{ t('components.aiQuickToggles.stepTranslate') }}</span>
             <n-switch v-model:value="localSettings.aiTranslate" />
           </label>
           <label class="step-toggle" data-testid="toggle-summary">
-            <span>摘要</span>
+            <span>{{ t('components.aiQuickToggles.stepSummary') }}</span>
             <n-switch v-model:value="localSettings.aiSummary" />
           </label>
         </div>
       </n-form-item>
 
       <n-button type="primary" block data-testid="save-ai-settings" @click="applySettings">
-        保存 AI 设置
+        {{ t('components.aiQuickToggles.saveSettings') }}
       </n-button>
     </n-form>
   </n-card>
@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import { useMessage } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 
 import type { WorkflowSettings } from '@shared/types'
 import { useWhisperStore } from '@/stores/whisper'
@@ -47,6 +48,7 @@ type AiQuickSettings = Pick<
   'aiEnabled' | 'aiCorrect' | 'aiTranslate' | 'aiSummary'
 >
 
+const { t } = useI18n()
 const whisperStore = useWhisperStore()
 const message = useMessage()
 
@@ -68,9 +70,9 @@ async function applySettings() {
       aiTranslate: localSettings.aiTranslate,
       aiSummary: localSettings.aiSummary
     })
-    message.success('AI 设置已保存')
+    message.success(t('components.aiQuickToggles.settingsSaved'))
   } catch (error) {
-    message.error('保存失败，请重试')
+    message.error(t('components.aiQuickToggles.saveFailed'))
   }
 }
 
