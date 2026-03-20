@@ -93,6 +93,13 @@
           >
             {{ t('settings.ytDlp.update') }}
           </n-button>
+          <n-button
+            v-if="downloading"
+            @click="cancelDownload"
+            type="warning"
+          >
+            {{ t('common.cancel') }}
+          </n-button>
           <n-button @click="detectManaged" :loading="detecting">
             {{ t('settings.ytDlp.refresh') }}
           </n-button>
@@ -128,6 +135,7 @@ const detecting = ref(false)
 const downloading = ref(false)
 const managedProgress = ref<ToolProgressEvent | null>(null)
 let unsubscribeManagedProgress: (() => void) | null = null
+let abortController: AbortController | null = null
 
 // 系統模式狀態
 const systemStatusType = computed(() => {
@@ -208,8 +216,11 @@ async function detectManaged() {
 // 下載管理版本
 async function download() {
   downloading.value = true
+  abortController = new AbortController()
   try {
-    const response = await window.fosswhisper.downloadManagedYtDlp()
+    const response = await window.fosswhisper.downloadManagedYtDlp({
+      signal: abortController.signal
+    })
     if (!response.ok) {
       throw new Error(response.error ?? 'Download failed')
     }
@@ -219,16 +230,21 @@ async function download() {
     await detectManaged()
   } catch (error) {
     console.error('Failed to download yt-dlp:', error)
+    throw error
   } finally {
     downloading.value = false
+    abortController = null
   }
 }
 
 // 更新管理版本
 async function update() {
   downloading.value = true
+  abortController = new AbortController()
   try {
-    const response = await window.fosswhisper.updateManagedYtDlp()
+    const response = await window.fosswhisper.updateManagedYtDlp({
+      signal: abortController.signal
+    })
     if (!response.ok) {
       throw new Error(response.error ?? 'Update failed')
     }
@@ -238,9 +254,17 @@ async function update() {
     await detectManaged()
   } catch (error) {
     console.error('Failed to update yt-dlp:', error)
+    throw error
   } finally {
     downloading.value = false
+    abortController = null
   }
+}
+
+// 取消下載
+function cancelDownload() {
+  abortController?.abort()
+  downloading.value = false
 }
 
 // 開啟資料夾

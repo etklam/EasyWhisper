@@ -68,16 +68,16 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD, payload),
   cancelYtDlp: (payload: YtDlpCancelPayload): Promise<YtDlpCancelResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_CANCEL, payload),
-  downloadManagedYtDlp: (): Promise<ToolOperationResponse<YtDlpInstallation>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD_MANAGED),
-  updateManagedYtDlp: (): Promise<ToolOperationResponse<YtDlpInstallation>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_UPDATE_MANAGED),
+  downloadManagedYtDlp: (payload?: { signal?: string }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD_MANAGED, payload),
+  updateManagedYtDlp: (payload?: { signal?: string }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_UPDATE_MANAGED, payload),
   detectManagedYtDlp: (): Promise<YtDlpInstallation> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT_MANAGED),
-  downloadManagedFfmpeg: (): Promise<ToolOperationResponse<FfmpegInstallation>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DOWNLOAD_MANAGED),
-  updateManagedFfmpeg: (): Promise<ToolOperationResponse<FfmpegInstallation>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_UPDATE_MANAGED),
+  downloadManagedFfmpeg: (payload?: { signal?: string }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DOWNLOAD_MANAGED, payload),
+  updateManagedFfmpeg: (payload?: { signal?: string }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_UPDATE_MANAGED, payload),
   detectManagedFfmpeg: (): Promise<FfmpegInstallation> =>
     ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT_MANAGED),
   detectSystemYtDlp: (): Promise<YtDlpInstallation> => ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT),

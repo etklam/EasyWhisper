@@ -22,10 +22,12 @@ export function createToolProgressEmitter(
 }
 
 export function createManagedDownloadOptions(
-  onProgress: (update: ToolProgressUpdate) => void
+  onProgress: (update: ToolProgressUpdate) => void,
+  signal?: AbortSignal
 ): ToolDownloadOptions {
   return {
-    onProgress
+    onProgress,
+    signal
   }
 }
 

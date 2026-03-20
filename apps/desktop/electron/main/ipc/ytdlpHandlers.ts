@@ -88,10 +88,11 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle(
     IPC_CHANNELS.YTDLP_DOWNLOAD_MANAGED,
-    async (): Promise<ToolOperationResponse<YtDlpInstallation>> => {
+    async (_event, payload?: { signal?: string }): Promise<ToolOperationResponse<YtDlpInstallation>> => {
       try {
+        const signal = payload?.signal ? new AbortController().signal : undefined
         const installation = await ytDlpManager.downloadManaged(
-          createManagedDownloadOptions(emitManagedProgress)
+          createManagedDownloadOptions(emitManagedProgress, signal)
         )
         return { ok: true, installation }
       } catch (error) {
@@ -102,10 +103,11 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle(
     IPC_CHANNELS.YTDLP_UPDATE_MANAGED,
-    async (): Promise<ToolOperationResponse<YtDlpInstallation>> => {
+    async (_event, payload?: { signal?: string }): Promise<ToolOperationResponse<YtDlpInstallation>> => {
       try {
+        const signal = payload?.signal ? new AbortController().signal : undefined
         const installation = await ytDlpManager.updateManaged(
-          createManagedDownloadOptions(emitManagedProgress)
+          createManagedDownloadOptions(emitManagedProgress, signal)
         )
         return { ok: true, installation }
       } catch (error) {
