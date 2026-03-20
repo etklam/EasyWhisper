@@ -89,6 +89,8 @@ export interface WorkflowSettings extends WhisperSettings {
   outputFormats: OutputFormat[]
   ytdlpAudioFormat: 'mp3' | 'wav' | 'm4a'
   ytdlpCookiesPath: string
+  ytdlpMode?: 'system' | 'managed'
+  ffmpegMode?: 'system' | 'managed'
   aiEnabled: boolean
   aiModel: string
   aiTargetLang: string
@@ -245,4 +247,45 @@ export interface OutputFormatResponse {
   content: string
   extension: string
   outputPath: string
+}
+
+/**
+ * yt-dlp 安裝信息
+ */
+export type YtDlpInstallationType = 'system' | 'managed' | 'none'
+
+export interface YtDlpInstallation {
+  type: YtDlpInstallationType
+  path?: string
+  version?: string
+  source?: string // 'homebrew', 'pip', 'apt', 'manual', etc.
+}
+
+/**
+ * ffmpeg 安裝信息
+ */
+export type FfmpegInstallationType = 'system' | 'managed' | 'none'
+
+export interface FfmpegInstallation {
+  type: FfmpegInstallationType
+  path?: string
+  version?: string
+  source?: string // 'homebrew', 'apt', 'manual', etc.
+}
+
+export type ManagedTool = 'ytdlp' | 'ffmpeg'
+
+export interface ToolOperationResponse<TInstallation> {
+  ok: boolean
+  installation?: TInstallation
+  error?: string
+}
+
+export interface ToolProgressEvent {
+  tool: ManagedTool
+  phase: 'download' | 'verify' | 'extract' | 'finalize'
+  percent?: number
+  downloadedBytes?: number
+  totalBytes?: number
+  message?: string
 }

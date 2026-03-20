@@ -88,6 +88,12 @@
           </n-button>
         </n-form>
       </n-card>
+
+      <!-- yt-dlp Settings Card -->
+      <YtDlpStatus :settings="whisperStore.settings" @update:settings="handleToolSettingsUpdate" />
+
+      <!-- ffmpeg Settings Card -->
+      <FfmpegStatus :settings="whisperStore.settings" @update:settings="handleToolSettingsUpdate" />
     </n-space>
   </div>
 </template>
@@ -98,6 +104,8 @@ import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { WorkflowSettings } from '@shared/types'
 import ModelSelector from '@/components/ModelSelector.vue'
+import YtDlpStatus from '@/components/YtDlpStatus.vue'
+import FfmpegStatus from '@/components/FfmpegStatus.vue'
 import { useWhisperStore } from '@/stores/whisper'
 import { useLocale } from '@/composables/useLocale'
 
@@ -176,6 +184,14 @@ async function applyDownloadSettings() {
     message.success(t('settings.download.saved'))
   } catch {
     message.error(t('settings.download.saveFailed'))
+  }
+}
+
+async function handleToolSettingsUpdate(settings: Partial<WorkflowSettings>) {
+  try {
+    await whisperStore.updateSettings(settings)
+  } catch {
+    message.error(t('settings.messages.saveFailed'))
   }
 }
 </script>

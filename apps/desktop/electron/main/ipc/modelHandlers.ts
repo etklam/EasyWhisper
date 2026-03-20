@@ -1,5 +1,5 @@
 import { app, ipcMain, shell, type BrowserWindow } from 'electron'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { IPC_CHANNELS } from '@shared/ipc'
@@ -64,7 +64,9 @@ export function registerModelHandlers(mainWindow: BrowserWindow): void {
     const modelsDir = path.join(app.getPath('userData'), 'models')
     try {
       await mkdir(modelsDir, { recursive: true })
-      shell.showItemInFolder(path.join(modelsDir, '.keep'))
+      const keepFile = path.join(modelsDir, '.keep')
+      await writeFile(keepFile, '', { flag: 'wx' }).catch(() => {})
+      shell.showItemInFolder(keepFile)
       return {
         ok: true,
         path: modelsDir

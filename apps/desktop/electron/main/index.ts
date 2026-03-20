@@ -6,6 +6,7 @@ import { registerAudioHandlers } from './ipc/audioHandlers'
 import { registerModelHandlers } from './ipc/modelHandlers'
 import { registerOutputHandlers } from './ipc/outputHandlers'
 import { registerSettingsIpc } from './ipc/settings'
+import { registerToolsIpc } from './ipc/toolsHandlers'
 import { registerWhisperIpc } from './ipc/whisper'
 import { registerYtDlpHandlers } from './ipc/ytdlpHandlers'
 
@@ -30,6 +31,7 @@ function createWindow(): BrowserWindow {
   registerAudioHandlers(mainWindow)
   registerOutputHandlers()
   registerSettingsIpc()
+  registerToolsIpc()
 
   if (process.env.VITE_DEV_SERVER_URL) {
     void mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)

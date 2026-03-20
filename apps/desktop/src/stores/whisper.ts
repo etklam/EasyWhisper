@@ -36,6 +36,8 @@ function createDefaultSettings(): WorkflowSettings {
     outputFormats: ['txt', 'srt'],
     ytdlpAudioFormat: 'mp3',
     ytdlpCookiesPath: '',
+    ytdlpMode: 'system',
+    ffmpegMode: 'system',
     aiEnabled: false,
     aiModel: '',
     aiTargetLang: 'zh-TW',
@@ -263,12 +265,19 @@ export const useWhisperStore = defineStore('whisper', {
       if (!task.url) return
       task.status = 'running'
       task.message = 'Downloading audio'
-      await window.fosswhisper.startYtDlp({
-        taskId: task.id,
-        url: task.url,
-        format: this.settings.ytdlpAudioFormat,
-        cookiesPath: this.settings.ytdlpCookiesPath || undefined
-      })
+      try {
+        await window.fosswhisper.startYtDlp({
+          taskId: task.id,
+          url: task.url,
+          format: this.settings.ytdlpAudioFormat,
+          cookiesPath: this.settings.ytdlpCookiesPath || undefined
+        })
+      } catch (error) {
+        task.status = 'error'
+        task.error = error instanceof Error ? error.message : String(error)
+        task.message = task.error
+        this.pumpQueue()
+      }
     },
 
     async startWhisperTask(task: RuntimeTask) {

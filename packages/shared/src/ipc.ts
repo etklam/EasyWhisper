@@ -25,7 +25,18 @@ export const IPC_CHANNELS = {
   YTDLP_CANCEL: 'ytdlp:cancel',
   YTDLP_PROGRESS: 'ytdlp:progress',
   YTDLP_COMPLETE: 'ytdlp:complete',
-  YTDLP_ERROR: 'ytdlp:error'
+  YTDLP_ERROR: 'ytdlp:error',
+  YTDLP_DETECT: 'ytdlp:detect',
+  YTDLP_DOWNLOAD_MANAGED: 'ytdlp:downloadManaged',
+  YTDLP_UPDATE_MANAGED: 'ytdlp:updateManaged',
+  YTDLP_DETECT_MANAGED: 'ytdlp:detectManaged',
+  YTDLP_MANAGED_PROGRESS: 'ytdlp:managedProgress',
+  FFMPEG_DETECT: 'ffmpeg:detect',
+  FFMPEG_DOWNLOAD_MANAGED: 'ffmpeg:downloadManaged',
+  FFMPEG_UPDATE_MANAGED: 'ffmpeg:updateManaged',
+  FFMPEG_DETECT_MANAGED: 'ffmpeg:detectManaged',
+  FFMPEG_MANAGED_PROGRESS: 'ffmpeg:managedProgress',
+  TOOLS_OPEN_PATH: 'tools:openPath'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

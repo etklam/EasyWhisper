@@ -289,56 +289,172 @@ export abstract class BaseToolManager<TInstallation> {
   ): Promise<string> {
     const extractDir = path.join(tempDir, 'extract')
     await mkdir(extractDir, { recursive: true })
-    const args: string[] = ['-xf', archivePath, '-C', extractDir]
-    if (config.archiveType === 'tar.xz') {
-      args.splice(1, 0, '-J')
+
+    if (config.archiveType === 'zip') {
+      // 使用 yauzl 解壓 zip（輕量級，無外部依賴）
+      const yauzl = await import('yauzl')
+      const zipfile = await yauzl.open(archivePath, { lazyEntries: true })
+      
+      await new Promise<void>((resolve, reject) => {
+        zipfile.on('entry', (entry) => {
+          // 創建目錄
+          if (/\/$/.test(entry.fileName)) {
+            const dir = path.join(extractDir, entry.fileName)
+            mkdir(dir, { recursive: true })
+              .catch(() => {})
+          } else {
+            // 提取文件
+            zipfile.openReadStream(entry, (err, readStream) => {
+              if (err) {
+                reject(err)
+                return
+              }
+              const dest = path.join(extractDir, entry.fileName)
+              mkdir(path.dirname(dest), { recursive: true })
+                .then(() => {
+                  const writeStream = createWriteStream(dest)
+                  readStream.pipe(writeStream)
+                })
+            })
+          }
+        })
+        zipfile.on('end', () => resolve())
+        zipfile.on('error', reject)
+      })
+    } else if (config.archiveType === 'tar.xz') {
+      // 使用 tar 解壓 tar.xz
+      await this.runCommand('tar', ['-xf', archivePath, '-C', extractDir, '-J'])
     }
-    await this.runCommand('tar', args)
+
     const binaryPath = path.join(extractDir, config.binaryRelativePath)
     if (!(await this.pathExists(binaryPath))) {
       throw new Error(`Binary ${config.binaryRelativePath} not found after extraction`)
     }
+
+    // 如果是 ffmpeg 且存在 bin 目錄，需要複製整個目錄
+    if (this.options.toolName === 'ffmpeg') {
+      const binDir = path.dirname(binaryPath)
+      if (await this.pathExists(binDir)) {
+        // ffmpeg 需要 ffmpeg.exe + ffprobe.exe + DLLs + 其他文件
+        // 返回 bin 目錄路徑，由 swapInBinary 處理
+        return binDir
+      }
+    }
+
     return binaryPath
   }
 
   private async swapInBinary(sourcePath: string, targetPath: string): Promise<void> {
     await mkdir(path.dirname(targetPath), { recursive: true })
-    const tempTarget = path.join(
-      path.dirname(targetPath),
-      `${path.basename(targetPath)}.${randomUUID()}.tmp`
-    )
-    await copyFile(sourcePath, tempTarget)
-    if (process.platform !== 'win32') {
-      await chmod(tempTarget, 0o755)
-    }
-    const backupPath = `${targetPath}.bak`
-    const targetExists = await this.pathExists(targetPath)
-    let backupCreated = false
-    if (targetExists) {
-      await rm(backupPath, { force: true })
-      try {
-        await rename(targetPath, backupPath)
-      } catch {
-        await copyFile(targetPath, backupPath)
-        await rm(targetPath, { force: true })
-      }
-      backupCreated = true
-    }
-    try {
-      await rename(tempTarget, targetPath)
-      if (backupCreated) {
+
+    // 檢查 sourcePath 是否是目錄（對於 ffmpeg 的 bin 目錄）
+    const sourceStats = await import('node:fs/promises').then(fs => fs.stat(sourcePath).catch(() => null))
+    const isDirectory = sourceStats?.isDirectory() ?? false
+
+    if (isDirectory) {
+      // 複製整個目錄（用於 ffmpeg 的 bin 目錄）
+      const tempDir = path.join(
+        path.dirname(targetPath),
+        `.${path.basename(targetPath)}.${randomUUID()}.tmp`
+      )
+      await this.copyDirectoryRecursive(sourcePath, tempDir)
+
+      const backupPath = `${targetPath}.bak`
+      const targetExists = await this.pathExists(targetPath)
+      let backupCreated = false
+
+      if (targetExists) {
         await rm(backupPath, { force: true })
+        try {
+          await rename(targetPath, backupPath)
+        } catch {
+          await this.copyDirectoryRecursive(targetPath, backupPath)
+          await rm(targetPath, { force: true, recursive: true })
+        }
+        backupCreated = true
       }
-    } catch (error) {
-      await rm(tempTarget, { force: true }).catch(() => {})
-      if (backupCreated) {
-        await rename(backupPath, targetPath).catch(async () => {
-          await copyFile(backupPath, targetPath)
+
+      try {
+        await rename(tempDir, targetPath)
+        if (backupCreated) {
+          await rm(backupPath, { force: true, recursive: true })
+        }
+      } catch (error) {
+        await rm(tempDir, { force: true, recursive: true }).catch(() => {})
+        if (backupCreated) {
+          await this.copyDirectoryRecursive(backupPath, targetPath)
+          await rm(backupPath, { force: true, recursive: true })
+        }
+        throw error
+      }
+    } else {
+      // 單文件處理（原邏輯）
+      const tempTarget = path.join(
+        path.dirname(targetPath),
+        `${path.basename(targetPath)}.${randomUUID()}.tmp`
+      )
+      await copyFile(sourcePath, tempTarget)
+      if (process.platform !== 'win32') {
+        await chmod(tempTarget, 0o755)
+      }
+      const backupPath = `${targetPath}.bak`
+      const targetExists = await this.pathExists(targetPath)
+      let backupCreated = false
+
+      if (targetExists) {
+        await rm(backupPath, { force: true })
+        try {
+          await rename(targetPath, backupPath)
+        } catch {
+          await copyFile(targetPath, backupPath)
+          await rm(targetPath, { force: true })
+        }
+        backupCreated = true
+      }
+
+      try {
+        await rename(tempTarget, targetPath)
+        if (backupCreated) {
           await rm(backupPath, { force: true })
-        })
+        }
+      } catch (error) {
+        await rm(tempTarget, { force: true }).catch(() => {})
+        if (backupCreated) {
+          await rename(backupPath, targetPath).catch(async () => {
+            await copyFile(backupPath, targetPath)
+            await rm(backupPath, { force: true })
+          })
+        }
+        throw error
       }
-      throw error
     }
+  }
+
+  private async copyDirectoryRecursive(source: string, target: string): Promise<void> {
+    const { readdir, stat, copyFile, mkdir } = await import('node:fs/promises')
+    
+    await mkdir(target, { recursive: true })
+    const entries = await readdir(source, { withFileTypes: true })
+
+    for (const entry of entries) {
+      const srcPath = path.join(source, entry.name)
+      const destPath = path.join(target, entry.name)
+
+      if (entry.isDirectory()) {
+        await this.copyDirectoryRecursive(srcPath, destPath)
+      } else {
+        await copyFile(srcPath, destPath)
+        // 對非 Windows 的可執行文件設定權限
+        if (process.platform !== 'win32' && this.isExecutable(destPath)) {
+          await chmod(destPath, 0o755)
+        }
+      }
+    }
+  }
+
+  private isExecutable(filePath: string): boolean {
+    const ext = path.extname(filePath).toLowerCase()
+    return ['.exe', '.bin', '.sh'].includes(ext)
   }
 
   private async ensureDiskSpace(dir: string, requiredBytes: number): Promise<void> {

@@ -3,7 +3,15 @@
     "save": "儲存",
     "cancel": "取消",
     "back": "返回",
-    "open": "開啟"
+    "open": "開啟",
+    "pause": "暫停",
+    "resume": "繼續",
+    "retry": "重試",
+    "remove": "移除",
+    "download": "下載",
+    "refresh": "重新整理",
+    "select": "選擇",
+    "apply": "套用"
   },
   "nav": {
     "home": "工作台",
@@ -43,7 +51,67 @@
     },
     "model": {
       "title": "模型設定",
-      "openFolder": "開啟模型資料夾"
+      "openFolder": "開啟模型資料夾",
+      "whisperModel": "Whisper 模型",
+      "downloaded": "已下載",
+      "notDownloaded": "未下載",
+      "downloading": "下載中 {progress}%",
+      "downloadModel": "下載模型",
+      "downloadComplete": "{label} 模型下載完成"
+    },
+    "ytDlp": {
+      "title": "yt-dlp 設定",
+      "mode": "yt-dlp 模式",
+      "systemMode": "系統模式",
+      "managedMode": "管理模式",
+      "detecting": "正在偵測 yt-dlp...",
+      "notInstalled": "未安裝 yt-dlp",
+      "notInstalledHint": "請先安裝 yt-dlp 才能從 URL 下載影片",
+      "systemDetected": "偵測到系統 yt-dlp",
+      "systemModeHint": "使用系統中已安裝的 yt-dlp（Homebrew、pip 等）。您需要自行管理更新。",
+      "managedDetected": "偵測到管理的 yt-dlp",
+      "managedModeHint": "FOSSWhisper 將自動管理 yt-dlp 的下載和更新。",
+      "ready": "yt-dlp 已就緒",
+      "version": "版本",
+      "source": "來源",
+      "path": "yt-dlp 路徑",
+      "download": "下載 yt-dlp",
+      "update": "更新 yt-dlp",
+      "refresh": "重新整理",
+      "manualInstall": "手動安裝",
+      "phase": {
+        "download": "下載中",
+        "verify": "驗證中",
+        "extract": "解壓中",
+        "finalize": "完成中"
+      }
+    },
+    "ffmpeg": {
+      "title": "ffmpeg 設定",
+      "mode": "ffmpeg 模式",
+      "systemMode": "系統模式",
+      "managedMode": "管理模式",
+      "detecting": "正在偵測 ffmpeg...",
+      "notInstalled": "未安裝 ffmpeg",
+      "notInstalledHint": "請先安裝 ffmpeg 才能轉換音訊/視訊檔案",
+      "systemDetected": "偵測到系統 ffmpeg",
+      "systemModeHint": "使用系統中已安裝的 ffmpeg（Homebrew、apt 等）。您需要自行管理更新。",
+      "managedDetected": "偵測到管理的 ffmpeg",
+      "managedModeHint": "FOSSWhisper 將自動管理 ffmpeg 的下載和更新。",
+      "ready": "ffmpeg 已就緒",
+      "version": "版本",
+      "source": "來源",
+      "path": "ffmpeg 路徑",
+      "download": "下載 ffmpeg",
+      "update": "更新 ffmpeg",
+      "refresh": "重新整理",
+      "manualInstall": "手動安裝",
+      "phase": {
+        "download": "下載中",
+        "verify": "驗證中",
+        "extract": "解壓中",
+        "finalize": "完成中"
+      }
     },
     "transcription": {
       "title": "轉錄設定",
@@ -53,7 +121,13 @@
       "useMetal": "啟用 Metal GPU 加速",
       "save": "儲存轉錄設定",
       "saved": "轉錄設定已儲存",
-      "saveFailed": "儲存失敗，請重試"
+      "saveFailed": "儲存失敗，請重試",
+      "modelPath": "模型路徑",
+      "modelPathPlaceholder": "/models/ggml-base.bin",
+      "threadsPlaceholder": "執行緒數",
+      "languagePlaceholder": "auto",
+      "outputDirPlaceholder": "預設：./outputs",
+      "applySettings": "套用設定"
     },
     "download": {
       "title": "下載設定",
@@ -61,6 +135,7 @@
       "audioFormat": "yt-dlp 音訊格式",
       "cookiesPath": "yt-dlp Cookies 路徑",
       "cookiesPlaceholder": "選填 cookies.txt 路徑",
+      "audioFormatPlaceholder": "mp3 / wav / m4a",
       "save": "儲存下載設定",
       "saved": "下載設定已儲存",
       "saveFailed": "儲存失敗，請重試"
@@ -73,26 +148,155 @@
   "components": {
     "importPanel": {
       "fileImport": "檔案匯入",
-      "urlImport": "URL 匯入"
+      "urlImport": "URL 匯入",
+      "dragDropTitle": "拖放音訊或視訊檔案",
+      "dragDropHint": "支援批次匯入，支援格式：{formats}",
+      "selectFiles": "選擇檔案",
+      "batchUrlTitle": "批次匯入 URL",
+      "urlPlaceholder": "每行輸入一個 URL，支援以 # 開頭的註解行",
+      "urlsParsed": "已解析 {count} 個 URL",
+      "addToQueue": "加入佇列"
     },
     "modelSelector": {
       "selectModel": "選擇模型",
       "downloading": "下載中...",
-      "download": "下載"
+      "download": "下載",
+      "downloaded": "已下載",
+      "notDownloaded": "未下載",
+      "downloadingProgress": "下載中 {progress}%"
+    },
+    "aiPanel": {
+      "title": "AI 功能面板",
+      "ollamaStatus": "Ollama 狀態",
+      "statusChecking": "檢查中",
+      "statusConnected": "已連線",
+      "statusDisconnected": "未連線",
+      "statusNotChecked": "未檢查",
+      "refresh": "重新整理",
+      "enableAiPost": "啟用 AI 後處理",
+      "enableAiHint": "轉錄完成後自動進入 AI 佇列",
+      "ollamaModel": "Ollama 模型",
+      "selectModelPlaceholder": "請選擇模型",
+      "targetLanguage": "翻譯目標語言",
+      "aiSteps": "AI 步驟",
+      "stepCorrect": "修正",
+      "stepTranslate": "翻譯",
+      "stepSummary": "摘要",
+      "correctPrompt": "修正 Prompt",
+      "translatePrompt": "翻譯 Prompt",
+      "summaryPrompt": "摘要 Prompt",
+      "promptPlaceholder": "留空則使用預設 prompt",
+      "saveSettings": "儲存 AI 設定",
+      "settingsSaved": "AI 設定已儲存",
+      "aiTaskStatus": "AI 任務狀態",
+      "waitingCount": "等待 {count} 項，執行中 {active} 項",
+      "noAiTasks": "暫無 AI 任務",
+      "currentStep": "目前步驟：{step}",
+      "waiting": "等待中",
+      "hintConnectedFound": "已發現 {count} 個模型",
+      "hintConnectedNotFound": "已連線，但尚未找到模型",
+      "hintDisconnected": "請確認 Ollama 已啟動，且本機 API 可存取",
+      "hintNotChecked": "點擊重新整理以檢查 Ollama 狀態",
+      "workflowStatusPending": "排隊中",
+      "workflowStatusRunning": "處理中",
+      "workflowStatusDone": "已完成",
+      "workflowStatusError": "失敗"
+    },
+    "queueTable": {
+      "title": "批次任務列表",
+      "summaryTotal": "總計 {count} 項",
+      "summaryActive": "進行中 {count} 項",
+      "summaryDone": "已完成 {count} 項",
+      "summaryError": "失敗 {count} 項",
+      "empty": "佇列為空，請先匯入檔案或 URL"
     },
     "queueItem": {
+      "sourceFile": "檔案",
+      "sourceUrl": "URL",
       "statusPending": "等待中",
       "statusRunning": "執行中",
       "statusCompleted": "已完成",
       "statusError": "錯誤",
-      "remove": "移除"
+      "statusDownloading": "下載中",
+      "statusConverting": "準備中",
+      "statusTranscribing": "轉錄中",
+      "statusAi": "AI 處理中",
+      "statusDone": "已完成",
+      "statusPaused": "已暫停",
+      "remove": "移除",
+      "pause": "暫停",
+      "resume": "繼續",
+      "cancel": "取消",
+      "retry": "重試",
+      "downloadProgress": "下載進度",
+      "transcribeProgress": "轉錄進度",
+      "aiProgress": "AI 進度",
+      "aiProgressWithStep": "AI 進度（{step}）",
+      "waiting": "等待處理",
+      "generated": "已生成：{results}",
+      "stepCorrect": "修正",
+      "stepTranslate": "翻譯",
+      "stepSummary": "摘要"
+    },
+    "urlInput": {
+      "title": "批次匯入 URL",
+      "placeholder": "每行輸入一個 URL，支援以 # 開頭的註解行",
+      "urlsParsed": "已解析 {count} 個 URL",
+      "addToQueue": "加入佇列",
+      "previewList": "預覽列表",
+      "previewEmpty": "尚未偵測到有效 URL",
+      "enterAtLeastOne": "請輸入至少一個有效 URL",
+      "addedCount": "已加入 {count} 個 URL"
+    },
+    "aiQuickToggles": {
+      "title": "AI 快捷設定",
+      "enableAiPost": "啟用 AI 後處理",
+      "enableAiHint": "轉錄完成後自動進入 AI 佇列",
+      "aiSteps": "AI 步驟",
+      "stepCorrect": "修正",
+      "stepTranslate": "翻譯",
+      "stepSummary": "摘要",
+      "saveSettings": "儲存 AI 設定",
+      "settingsSaved": "AI 設定已儲存",
+      "saveFailed": "儲存失敗，請重試"
+    },
+    "settingsPanel": {
+      "title": "轉錄設定",
+      "modelPath": "模型路徑",
+      "modelPathPlaceholder": "/models/ggml-base.bin",
+      "threads": "執行緒數",
+      "language": "語言",
+      "languagePlaceholder": "auto",
+      "outputDir": "輸出目錄",
+      "outputDirPlaceholder": "預設：./outputs",
+      "ytdlpAudioFormat": "yt-dlp 音訊格式",
+      "ytdlpAudioFormatPlaceholder": "mp3 / wav / m4a",
+      "ytdlpCookiesPath": "yt-dlp Cookies 路徑",
+      "ytdlpCookiesPathPlaceholder": "選填 cookies.txt 路徑",
+      "enableMetal": "啟用 Metal GPU 加速",
+      "applySettings": "套用設定"
+    },
+    "taskQueue": {
+      "title": "任務佇列",
+      "empty": "暫無任務",
+      "pendingTask": "等待處理",
+      "status": "狀態",
+      "transcript": "轉錄結果"
+    },
+    "urlImportPanel": {
+      "title": "從 URL 匯入",
+      "placeholder": "每行貼上一個視訊 URL",
+      "hint": "支援 YouTube 風格的批次輸入，忽略註解行。",
+      "queueUrls": "加入佇列"
     }
   },
   "messages": {
     "ignoredFiles": "已忽略 {count} 個不支援的檔案",
     "noValidFiles": "沒有可匯入的音訊或視訊檔案",
     "filesAdded": "已加入 {count} 個檔案",
-    "error": "錯誤：{message}"
+    "error": "錯誤：{message}",
+    "urlsAdded": "已加入 {count} 個 URL",
+    "enterValidUrl": "請輸入至少一個有效 URL"
   },
   "queue": {
     "unnamed": "未命名任務",

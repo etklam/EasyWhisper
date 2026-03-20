@@ -11,10 +11,13 @@ import type {
   AudioConvertPayload,
   AudioConvertResponse,
   AudioProgressEvent,
+  FfmpegInstallation,
+  OpenFolderResponse,
   OutputFormat,
   OutputFormatPayload,
   OutputFormatResponse,
-  OpenFolderResponse,
+  ToolOperationResponse,
+  ToolProgressEvent,
   WorkflowSettings,
   WhisperCompleteEvent,
   WhisperErrorEvent,
@@ -29,6 +32,7 @@ import type {
   YtDlpCancelResponse,
   YtDlpCompleteEvent,
   YtDlpErrorEvent,
+  YtDlpInstallation,
   YtDlpProgressEvent,
   YtDlpStartPayload,
   YtDlpStartResponse
@@ -48,6 +52,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, settings),
   openOutputFolder: (): Promise<OpenFolderResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_OPEN_OUTPUT_FOLDER),
+  openFolder: (folderPath: string): Promise<OpenFolderResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TOOLS_OPEN_PATH, folderPath),
   listModels: (): Promise<WhisperModelInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.MODEL_LIST),
   downloadModel: (payload: WhisperModelDownloadPayload): Promise<WhisperModelDownloadResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.MODEL_DOWNLOAD, payload),
@@ -62,6 +68,20 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD, payload),
   cancelYtDlp: (payload: YtDlpCancelPayload): Promise<YtDlpCancelResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_CANCEL, payload),
+  downloadManagedYtDlp: (): Promise<ToolOperationResponse<YtDlpInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD_MANAGED),
+  updateManagedYtDlp: (): Promise<ToolOperationResponse<YtDlpInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_UPDATE_MANAGED),
+  detectManagedYtDlp: (): Promise<YtDlpInstallation> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT_MANAGED),
+  downloadManagedFfmpeg: (): Promise<ToolOperationResponse<FfmpegInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DOWNLOAD_MANAGED),
+  updateManagedFfmpeg: (): Promise<ToolOperationResponse<FfmpegInstallation>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_UPDATE_MANAGED),
+  detectManagedFfmpeg: (): Promise<FfmpegInstallation> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT_MANAGED),
+  detectSystemYtDlp: (): Promise<YtDlpInstallation> => ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT),
+  detectSystemFfmpeg: (): Promise<FfmpegInstallation> => ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT),
   onWhisperProgress: (listener: (event: WhisperProgressEvent) => void): Unsubscribe =>
     bindRendererListener(IPC_CHANNELS.WHISPER_PROGRESS, listener),
   onWhisperComplete: (listener: (event: WhisperCompleteEvent) => void): Unsubscribe =>
@@ -80,6 +100,10 @@ const api = {
     bindRendererListener(IPC_CHANNELS.YTDLP_COMPLETE, listener),
   onYtDlpError: (listener: (event: YtDlpErrorEvent) => void): Unsubscribe =>
     bindRendererListener(IPC_CHANNELS.YTDLP_ERROR, listener),
+  onYtDlpManagedProgress: (listener: (event: ToolProgressEvent) => void): Unsubscribe =>
+    bindRendererListener(IPC_CHANNELS.YTDLP_MANAGED_PROGRESS, listener),
+  onFfmpegManagedProgress: (listener: (event: ToolProgressEvent) => void): Unsubscribe =>
+    bindRendererListener(IPC_CHANNELS.FFMPEG_MANAGED_PROGRESS, listener),
   onAudioProgress: (listener: (event: AudioProgressEvent) => void): Unsubscribe =>
     bindRendererListener(IPC_CHANNELS.AUDIO_PROGRESS, listener),
   onModelProgress: (listener: (event: WhisperModelDownloadProgressEvent) => void): Unsubscribe =>

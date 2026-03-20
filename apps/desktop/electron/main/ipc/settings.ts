@@ -5,9 +5,7 @@ import path from 'node:path'
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { OpenFolderResponse, WorkflowSettings } from '@shared/types'
 import type { SettingsSchema } from '@shared/settings.schema'
-import { SettingsManager } from '../settings/SettingsManager'
-
-const settingsManager = new SettingsManager()
+import { settingsManager } from '../settings'
 
 function getDefaultOutputDir(): string {
   return path.join(app.getPath('documents'), 'FOSSWhisper')
@@ -63,6 +61,8 @@ function toWorkflowSettings(settings: SettingsSchema): WorkflowSettings {
     outputFormats: settings.outputFormats,
     ytdlpAudioFormat: settings.ytdlpAudioFormat,
     ytdlpCookiesPath: settings.ytdlpCookiesPath ?? '',
+    ytdlpMode: settings.ytdlpMode,
+    ffmpegMode: settings.ffmpegMode,
     aiEnabled: settings.ai.enabled,
     aiModel: settings.ai.model,
     aiTargetLang: settings.ai.targetLang,
@@ -85,6 +85,8 @@ function toSettingsPatch(partial: Partial<WorkflowSettings>): Partial<SettingsSc
   if (partial.outputFormats !== undefined) next.outputFormats = partial.outputFormats
   if (partial.ytdlpAudioFormat !== undefined) next.ytdlpAudioFormat = partial.ytdlpAudioFormat
   if (partial.ytdlpCookiesPath !== undefined) next.ytdlpCookiesPath = partial.ytdlpCookiesPath || undefined
+  if (partial.ytdlpMode !== undefined) next.ytdlpMode = partial.ytdlpMode
+  if (partial.ffmpegMode !== undefined) next.ffmpegMode = partial.ffmpegMode
 
   const aiPatch: Partial<SettingsSchema['ai']> = {}
   const aiTaskPatch: Partial<SettingsSchema['ai']['tasks']> = {}

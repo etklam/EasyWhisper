@@ -253,8 +253,14 @@ function openFolder(filePath: string) {
 watch(
   () => props.settings.ytdlpMode,
   (newMode) => {
-    if (newMode) {
+    if (newMode && newMode !== mode.value) {
       mode.value = newMode
+      // 切換後檢測
+      if (newMode === 'system') {
+        detectSystem()
+      } else {
+        detectManaged()
+      }
     }
   }
 )
@@ -264,7 +270,11 @@ const managedProgressText = computed(() => {
   if (!managedProgress.value) return ''
   const percent =
     managedProgress.value.percent !== undefined ? `${managedProgress.value.percent.toFixed(0)}%` : ''
-  const phase = managedProgress.value.phase ?? ''
+  
+  // 映射阶段到翻译键
+  const phaseKey = `settings.ytDlp.phase.${managedProgress.value.phase}`
+  const phase = managedProgress.value.phase ? t(phaseKey) : ''
+  
   return percent ? `${phase} ${percent}` : phase
 })
 

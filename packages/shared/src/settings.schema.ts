@@ -14,6 +14,8 @@ export interface SettingsSchema {
   maxAiConcurrency: number          // AI 佇列並行數，預設 2
   ytdlpAudioFormat: 'mp3' | 'wav' | 'm4a'
   ytdlpCookiesPath?: string
+  ytdlpMode: 'system' | 'managed'   // 系統模式 vs 管理模式
+  ffmpegMode: 'system' | 'managed'  // 系統模式 vs 管理模式
   ai: {
     enabled: boolean
     model: string                   // Ollama 模型名稱

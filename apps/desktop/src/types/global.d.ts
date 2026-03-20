@@ -8,10 +8,13 @@ import type {
   AudioConvertPayload,
   AudioConvertResponse,
   AudioProgressEvent,
+  FfmpegInstallation,
+  OpenFolderResponse,
   OutputFormat,
   OutputFormatPayload,
   OutputFormatResponse,
-  OpenFolderResponse,
+  ToolOperationResponse,
+  ToolProgressEvent,
   WorkflowSettings,
   WhisperCompleteEvent,
   WhisperErrorEvent,
@@ -26,6 +29,7 @@ import type {
   YtDlpCancelResponse,
   YtDlpCompleteEvent,
   YtDlpErrorEvent,
+  YtDlpInstallation,
   YtDlpProgressEvent,
   YtDlpStartPayload,
   YtDlpStartResponse
@@ -42,6 +46,7 @@ declare global {
       getSettings: () => Promise<WorkflowSettings>
       setSettings: (settings: Partial<WorkflowSettings>) => Promise<WorkflowSettings>
       openOutputFolder: () => Promise<OpenFolderResponse>
+      openFolder: (folderPath: string) => Promise<OpenFolderResponse>
       listModels: () => Promise<WhisperModelInfo[]>
       downloadModel: (payload: WhisperModelDownloadPayload) => Promise<WhisperModelDownloadResponse>
       openModelFolder: () => Promise<OpenFolderResponse>
@@ -50,6 +55,14 @@ declare global {
       getOutputFormats: () => Promise<OutputFormat[]>
       startYtDlp: (payload: YtDlpStartPayload) => Promise<YtDlpStartResponse>
       cancelYtDlp: (payload: YtDlpCancelPayload) => Promise<YtDlpCancelResponse>
+      downloadManagedYtDlp: () => Promise<ToolOperationResponse<YtDlpInstallation>>
+      updateManagedYtDlp: () => Promise<ToolOperationResponse<YtDlpInstallation>>
+      detectManagedYtDlp: () => Promise<YtDlpInstallation>
+      downloadManagedFfmpeg: () => Promise<ToolOperationResponse<FfmpegInstallation>>
+      updateManagedFfmpeg: () => Promise<ToolOperationResponse<FfmpegInstallation>>
+      detectManagedFfmpeg: () => Promise<FfmpegInstallation>
+      detectSystemYtDlp: () => Promise<YtDlpInstallation>
+      detectSystemFfmpeg: () => Promise<FfmpegInstallation>
       onWhisperProgress: (listener: (event: WhisperProgressEvent) => void) => () => void
       onWhisperComplete: (listener: (event: WhisperCompleteEvent) => void) => () => void
       onWhisperError: (listener: (event: WhisperErrorEvent) => void) => () => void
@@ -59,6 +72,8 @@ declare global {
       onYtDlpProgress: (listener: (event: YtDlpProgressEvent) => void) => () => void
       onYtDlpComplete: (listener: (event: YtDlpCompleteEvent) => void) => () => void
       onYtDlpError: (listener: (event: YtDlpErrorEvent) => void) => () => void
+      onYtDlpManagedProgress: (listener: (event: ToolProgressEvent) => void) => () => void
+      onFfmpegManagedProgress: (listener: (event: ToolProgressEvent) => void) => () => void
       onAudioProgress: (listener: (event: AudioProgressEvent) => void) => () => void
       onModelProgress: (listener: (event: WhisperModelDownloadProgressEvent) => void) => () => void
     }

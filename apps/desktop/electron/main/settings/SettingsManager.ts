@@ -16,6 +16,8 @@ const DEFAULT_SETTINGS: SettingsSchema = {
   maxTranscribeConcurrency: 1,
   maxAiConcurrency: 2,
   ytdlpAudioFormat: 'mp3',
+  ytdlpMode: 'system',
+  ffmpegMode: 'system',
   ai: {
     enabled: false,
     model: '',
@@ -212,6 +214,12 @@ export class SettingsManager {
         throw new Error(`Invalid output format: ${format}`)
       }
     }
+    if (!isValidToolMode(settings.ytdlpMode)) {
+      throw new Error(`Invalid yt-dlp mode: ${settings.ytdlpMode}`)
+    }
+    if (!isValidToolMode(settings.ffmpegMode)) {
+      throw new Error(`Invalid ffmpeg mode: ${settings.ffmpegMode}`)
+    }
   }
 
   private scheduleQueuePersist(): void {
@@ -289,4 +297,8 @@ function isValidLocale(locale: string): locale is SettingsSchema['locale'] {
 
 function isValidOutputFormat(format: string): format is SettingsSchema['outputFormats'][number] {
   return (VALID_OUTPUT_FORMATS as readonly string[]).includes(format)
+}
+
+function isValidToolMode(mode: string): mode is 'system' | 'managed' {
+  return mode === 'system' || mode === 'managed'
 }
