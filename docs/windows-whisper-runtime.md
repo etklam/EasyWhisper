@@ -2,6 +2,10 @@
 
 当前 Windows Whisper 路线基于 `Const-me/Whisper`，桌面端通过一个可执行 wrapper 调用运行时。
 
+实现侧接手开发请同时参考：
+
+- [windows-whisper-wrapper-implementation.md](/Users/klam/Desktop/project/FOSSWhisper/docs/windows-whisper-wrapper-implementation.md)
+
 ## 打包位置
 
 Windows runtime 资源应放在：
