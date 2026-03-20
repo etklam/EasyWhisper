@@ -7,6 +7,7 @@
     "dev": "pnpm --filter @fosswhisper/desktop dev",
     "build": "pnpm -r build",
     "package:mac": "pnpm --filter @fosswhisper/desktop package:mac",
+    "stage:win:whisper": "pnpm --filter @fosswhisper/desktop stage:win:whisper",
     "package:win": "pnpm --filter @fosswhisper/desktop package:win",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

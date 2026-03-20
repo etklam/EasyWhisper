@@ -116,6 +116,17 @@ pnpm --filter @fosswhisper/desktop dev
 pnpm package:win
 ```
 
+### Windows Whisper Runtime 准备
+```bash
+pnpm stage:win:whisper --source /path/to/const-me-runtime --version 1.0.0
+pnpm package:win
+```
+
+说明：
+- staging 脚本会把 `WhisperCLI.exe` 和 `whisper.dll` 复制到 `apps/desktop/resources/win/`
+- 同时更新 `apps/desktop/resources/versions.json`
+- 也可用环境变量 `FOSSWHISPER_WINDOWS_WHISPER_SOURCE_DIR`、`FOSSWHISPER_WINDOWS_WHISPER_CLI_PATH`、`FOSSWHISPER_WINDOWS_WHISPER_DLL_PATH`
+
 ---
 
 ## 📊 项目状态
