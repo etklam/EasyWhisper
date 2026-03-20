@@ -45,7 +45,6 @@
   "build": {
     "appId": "com.fosswhisper.desktop",
     "productName": "FOSSWhisper",
-    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
     },

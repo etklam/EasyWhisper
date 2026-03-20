@@ -291,36 +291,7 @@ export abstract class BaseToolManager<TInstallation> {
     await mkdir(extractDir, { recursive: true })
 
     if (config.archiveType === 'zip') {
-      // 使用 yauzl 解壓 zip（輕量級，無外部依賴）
-      const yauzl = await import('yauzl')
-      const zipfile = await yauzl.open(archivePath, { lazyEntries: true })
-      
-      await new Promise<void>((resolve, reject) => {
-        zipfile.on('entry', (entry) => {
-          // 創建目錄
-          if (/\/$/.test(entry.fileName)) {
-            const dir = path.join(extractDir, entry.fileName)
-            mkdir(dir, { recursive: true })
-              .catch(() => {})
-          } else {
-            // 提取文件
-            zipfile.openReadStream(entry, (err, readStream) => {
-              if (err) {
-                reject(err)
-                return
-              }
-              const dest = path.join(extractDir, entry.fileName)
-              mkdir(path.dirname(dest), { recursive: true })
-                .then(() => {
-                  const writeStream = createWriteStream(dest)
-                  readStream.pipe(writeStream)
-                })
-            })
-          }
-        })
-        zipfile.on('end', () => resolve())
-        zipfile.on('error', reject)
-      })
+      await this.extractZipArchive(archivePath, extractDir)
     } else if (config.archiveType === 'tar.xz') {
       // 使用 tar 解壓 tar.xz
       await this.runCommand('tar', ['-xf', archivePath, '-C', extractDir, '-J'])
@@ -352,37 +323,39 @@ export abstract class BaseToolManager<TInstallation> {
     const isDirectory = sourceStats?.isDirectory() ?? false
 
     if (isDirectory) {
-      // 複製整個目錄（用於 ffmpeg 的 bin 目錄）
-      const tempDir = path.join(
-        path.dirname(targetPath),
-        `.${path.basename(targetPath)}.${randomUUID()}.tmp`
-      )
+      // 針對 ffmpeg 將整個 bin 目錄換入 current 目錄，確保 ffprobe/DLL 與 ffmpeg.exe 同層。
+      const installDir = path.dirname(targetPath)
+      const parentDir = path.dirname(installDir)
+      const tempDir = path.join(parentDir, `.${path.basename(installDir)}.${randomUUID()}.tmp`)
       await this.copyDirectoryRecursive(sourcePath, tempDir)
 
-      const backupPath = `${targetPath}.bak`
-      const targetExists = await this.pathExists(targetPath)
+      const backupPath = `${installDir}.bak`
+      const targetExists = await this.pathExists(installDir)
       let backupCreated = false
 
       if (targetExists) {
-        await rm(backupPath, { force: true })
+        await rm(backupPath, { force: true, recursive: true })
         try {
-          await rename(targetPath, backupPath)
+          await rename(installDir, backupPath)
         } catch {
-          await this.copyDirectoryRecursive(targetPath, backupPath)
-          await rm(targetPath, { force: true, recursive: true })
+          await this.copyDirectoryRecursive(installDir, backupPath)
+          await rm(installDir, { force: true, recursive: true })
         }
         backupCreated = true
       }
 
       try {
-        await rename(tempDir, targetPath)
+        await rename(tempDir, installDir)
+        if (!(await this.pathExists(targetPath))) {
+          throw new Error(`Binary ${targetPath} not found after installation`)
+        }
         if (backupCreated) {
           await rm(backupPath, { force: true, recursive: true })
         }
       } catch (error) {
         await rm(tempDir, { force: true, recursive: true }).catch(() => {})
         if (backupCreated) {
-          await this.copyDirectoryRecursive(backupPath, targetPath)
+          await this.copyDirectoryRecursive(backupPath, installDir)
           await rm(backupPath, { force: true, recursive: true })
         }
         throw error
@@ -455,6 +428,76 @@ export abstract class BaseToolManager<TInstallation> {
   private isExecutable(filePath: string): boolean {
     const ext = path.extname(filePath).toLowerCase()
     return ['.exe', '.bin', '.sh'].includes(ext)
+  }
+
+  private async extractZipArchive(archivePath: string, extractDir: string): Promise<void> {
+    const yauzl = await import('yauzl')
+    const zipfile = await new Promise<any>((resolve, reject) => {
+      yauzl.open(archivePath, { lazyEntries: true }, (error, handle) => {
+        if (error || !handle) {
+          reject(error ?? new Error('Failed to open zip archive'))
+          return
+        }
+        resolve(handle)
+      })
+    })
+
+    const extractRoot = path.resolve(extractDir)
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false
+
+      const fail = (error: unknown): void => {
+        if (settled) {
+          return
+        }
+        settled = true
+        zipfile.close()
+        reject(error instanceof Error ? error : new Error(String(error)))
+      }
+
+      zipfile.on('error', fail)
+      zipfile.on('end', () => {
+        if (settled) {
+          return
+        }
+        settled = true
+        resolve()
+      })
+      zipfile.on('entry', (entry: { fileName: string }) => {
+        const destPath = path.resolve(extractRoot, entry.fileName)
+        if (destPath !== extractRoot && !destPath.startsWith(`${extractRoot}${path.sep}`)) {
+          fail(new Error(`Archive entry escapes extraction directory: ${entry.fileName}`))
+          return
+        }
+
+        if (/\/$/.test(entry.fileName)) {
+          void mkdir(destPath, { recursive: true })
+            .then(() => zipfile.readEntry())
+            .catch(fail)
+          return
+        }
+
+        void mkdir(path.dirname(destPath), { recursive: true })
+          .then(() => {
+            zipfile.openReadStream(entry, (error: Error | null, readStream: NodeJS.ReadableStream | null) => {
+              if (error || !readStream) {
+                fail(error ?? new Error(`Failed to read archive entry: ${entry.fileName}`))
+                return
+              }
+
+              const writeStream = createWriteStream(destPath)
+              readStream.on('error', fail)
+              writeStream.on('error', fail)
+              writeStream.on('close', () => zipfile.readEntry())
+              readStream.pipe(writeStream)
+            })
+          })
+          .catch(fail)
+      })
+
+      zipfile.readEntry()
+    })
   }
 
   private async ensureDiskSpace(dir: string, requiredBytes: number): Promise<void> {
