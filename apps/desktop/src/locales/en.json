@@ -21,7 +21,7 @@
     "openSettings": "Settings"
   },
   "app": {
-    "title": "FOSSWhisper",
+    "title": "EASYWhisper",
     "subtitleHome": "Local Transcription Workspace",
     "subtitleSettings": "Manage models, transcription, and download settings"
   },
@@ -77,7 +77,7 @@
       "systemDetected": "System yt-dlp Detected",
       "systemModeHint": "Use yt-dlp installed on your system (Homebrew, pip, etc.). You need to manage updates yourself.",
       "managedDetected": "Managed yt-dlp Detected",
-      "managedModeHint": "FOSSWhisper will manage yt-dlp downloads and updates automatically.",
+      "managedModeHint": "EASYWhisper will manage yt-dlp downloads and updates automatically.",
       "ready": "yt-dlp Ready",
       "version": "Version",
       "source": "Source",
@@ -104,7 +104,7 @@
       "systemDetected": "System ffmpeg Detected",
       "systemModeHint": "Use ffmpeg installed on your system (Homebrew, apt, etc.). You need to manage updates yourself.",
       "managedDetected": "Managed ffmpeg Detected",
-      "managedModeHint": "FOSSWhisper will manage ffmpeg downloads and updates automatically.",
+      "managedModeHint": "EASYWhisper will manage ffmpeg downloads and updates automatically.",
       "ready": "ffmpeg Ready",
       "version": "Version",
       "source": "Source",
@@ -209,6 +209,7 @@
       "translatePrompt": "Translate Prompt",
       "summaryPrompt": "Summary Prompt",
       "promptPlaceholder": "Leave empty to use default prompt",
+      "resetPrompt": "Reset to Default",
       "saveSettings": "Save AI Settings",
       "settingsSaved": "AI settings saved",
       "aiTaskStatus": "AI Task Status",
@@ -277,6 +278,7 @@
       "enableAiPost": "Enable AI Post-Processing",
       "enableAiHint": "Automatically enter AI queue after transcription",
       "aiSteps": "AI Steps",
+      "targetLanguage": "Translation Target Language",
       "stepCorrect": "Correct",
       "stepTranslate": "Translate",
       "stepSummary": "Summary",

@@ -1,18 +1,18 @@
 {
-  "name": "fosswhisper",
+  "name": "easywhisper",
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.17.1",
   "scripts": {
-    "dev": "pnpm --filter @fosswhisper/desktop dev",
+    "dev": "pnpm --filter @easywhisper/desktop dev",
     "build": "pnpm -r build",
-    "package:mac": "pnpm --filter @fosswhisper/desktop package:mac",
-    "stage:win:whisper": "pnpm --filter @fosswhisper/desktop stage:win:whisper",
-    "package:win": "pnpm --filter @fosswhisper/desktop package:win",
+    "package:mac": "pnpm --filter @easywhisper/desktop package:mac",
+    "stage:win:whisper": "pnpm --filter @easywhisper/desktop stage:win:whisper",
+    "package:win": "pnpm --filter @easywhisper/desktop package:win",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:run": "pnpm -r test:run",
-    "test:unit": "pnpm --filter @fosswhisper/shared test:run",
-    "test:integration": "pnpm --filter @fosswhisper/desktop test:run"
+    "test:unit": "pnpm --filter @easywhisper/shared test:run",
+    "test:integration": "pnpm --filter @easywhisper/desktop test:run"
   }
 }

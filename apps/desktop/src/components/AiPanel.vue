@@ -59,8 +59,17 @@
         </div>
       </n-form-item>
 
-      <n-form-item :label="t('components.aiPanel.correctPrompt')">
+      <n-form-item>
+        <template #label>
+          <div class="prompt-label">
+            <span>{{ t('components.aiPanel.correctPrompt') }}</span>
+            <n-button text type="primary" size="small" @click="resetPrompt('correct')">
+              {{ t('components.aiPanel.resetPrompt') }}
+            </n-button>
+          </div>
+        </template>
         <n-input
+          data-testid="correct-prompt-input"
           v-model:value="localSettings.aiCustomPrompts.correct"
           type="textarea"
           :placeholder="t('components.aiPanel.promptPlaceholder')"
@@ -68,8 +77,17 @@
         />
       </n-form-item>
 
-      <n-form-item :label="t('components.aiPanel.translatePrompt')">
+      <n-form-item>
+        <template #label>
+          <div class="prompt-label">
+            <span>{{ t('components.aiPanel.translatePrompt') }}</span>
+            <n-button text type="primary" size="small" @click="resetPrompt('translate')">
+              {{ t('components.aiPanel.resetPrompt') }}
+            </n-button>
+          </div>
+        </template>
         <n-input
+          data-testid="translate-prompt-input"
           v-model:value="localSettings.aiCustomPrompts.translate"
           type="textarea"
           :placeholder="t('components.aiPanel.promptPlaceholder')"
@@ -77,8 +95,17 @@
         />
       </n-form-item>
 
-      <n-form-item :label="t('components.aiPanel.summaryPrompt')">
+      <n-form-item>
+        <template #label>
+          <div class="prompt-label">
+            <span>{{ t('components.aiPanel.summaryPrompt') }}</span>
+            <n-button text type="primary" size="small" @click="resetPrompt('summary')">
+              {{ t('components.aiPanel.resetPrompt') }}
+            </n-button>
+          </div>
+        </template>
         <n-input
+          data-testid="summary-prompt-input"
           v-model:value="localSettings.aiCustomPrompts.summary"
           type="textarea"
           :placeholder="t('components.aiPanel.promptPlaceholder')"
@@ -296,6 +323,10 @@ function normalizePrompts(prompts: AiSettingsForm['aiCustomPrompts']) {
     summary: prompts?.summary?.trim() || undefined
   }
 }
+
+function resetPrompt(taskType: keyof AiSettingsForm['aiCustomPrompts']) {
+  localSettings.aiCustomPrompts[taskType] = ''
+}
 </script>
 
 <style scoped>
@@ -344,6 +375,14 @@ function normalizePrompts(prompts: AiSettingsForm['aiCustomPrompts']) {
 .workflow-item {
   display: grid;
   gap: 8px;
+}
+
+.prompt-label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .workflow-item {

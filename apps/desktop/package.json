@@ -1,10 +1,10 @@
 {
-  "name": "@fosswhisper/desktop",
+  "name": "@easywhisper/desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "FOSSWhisper desktop app",
-  "author": "FOSSWhisper",
+  "description": "EASYWhisper desktop app",
+  "author": "EASYWhisper",
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -20,8 +20,8 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@fosswhisper/shared": "workspace:*",
-    "@fosswhisper/ui": "workspace:*",
+    "@easywhisper/shared": "workspace:*",
+    "@easywhisper/ui": "workspace:*",
     "electron-store": "^10.0.0",
     "naive-ui": "^2.41.1",
     "pinia": "^3.0.3",
@@ -46,7 +46,7 @@
   },
   "build": {
     "appId": "com.fosswhisper.desktop",
-    "productName": "FOSSWhisper",
+    "productName": "EASYWhisper",
     "directories": {
       "output": "release"
     },

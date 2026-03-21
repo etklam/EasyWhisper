@@ -39,8 +39,23 @@ describe('AiQuickToggles', () => {
     expect(wrapper.find('[data-testid="toggle-summary"]').exists()).toBe(true)
   })
 
+  it('shows target language selector when translation is enabled', () => {
+    const store = useWhisperStore()
+    store.settings.aiTranslate = true
+
+    const wrapper = mount(AiQuickToggles, {
+      global: {
+        plugins: [naive, i18n]
+      }
+    })
+
+    expect(wrapper.find('[data-testid="ai-target-language-select"]').exists()).toBe(true)
+  })
+
   it('saves AI settings when save button is clicked', async () => {
     const store = useWhisperStore()
+    store.settings.aiTranslate = true
+    store.settings.aiTargetLang = 'ja'
     const updateSettingsSpy = vi.spyOn(store, 'updateSettings').mockResolvedValue(undefined)
 
     const wrapper = mount(AiQuickToggles, {
@@ -51,7 +66,11 @@ describe('AiQuickToggles', () => {
 
     await wrapper.find('[data-testid="save-ai-settings"]').trigger('click')
 
-    expect(updateSettingsSpy).toHaveBeenCalled()
+    expect(updateSettingsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiTargetLang: 'ja'
+      })
+    )
     expect(message.success).toHaveBeenCalledWith(i18n.global.t('components.aiQuickToggles.settingsSaved'))
   })
 

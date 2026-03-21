@@ -103,6 +103,8 @@
         </n-form>
       </n-card>
 
+      <AiPanel />
+
       <!-- yt-dlp Settings Card -->
       <YtDlpStatus :settings="whisperStore.settings" @update:settings="handleToolSettingsUpdate" />
 
@@ -117,6 +119,7 @@ import { computed, ref, reactive, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { WorkflowSettings } from '@shared/types'
+import AiPanel from '@/components/AiPanel.vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import YtDlpStatus from '@/components/YtDlpStatus.vue'
 import FfmpegStatus from '@/components/FfmpegStatus.vue'

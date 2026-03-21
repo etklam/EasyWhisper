@@ -1,4 +1,4 @@
-// Settings Schema for FOSSWhisper
+// Settings Schema for EASYWhisper
 // This file defines the structure for persisted settings and queue data
 
 /** 使用者設定 schema（存於 userData/settings.json） */

@@ -1,7 +1,7 @@
 [project]
-name = "fosswhisper-backend"
+name = "easywhisper-backend"
 version = "0.1.0"
-description = "Optional FastAPI backend for FOSSWhisper"
+description = "Optional FastAPI backend for EASYWhisper"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.116.0",

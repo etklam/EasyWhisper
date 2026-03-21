@@ -25,7 +25,7 @@ function shouldRemove(name) {
   if (/^win-.*-unpacked$/.test(name)) {
     return true
   }
-  if (/^FOSSWhisper-.*-setup\.exe(\.blockmap)?$/.test(name)) {
+  if (/^EASYWhisper-.*-setup\.exe(\.blockmap)?$/.test(name)) {
     return true
   }
   return false

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="FOSSWhisper Backend")
+app = FastAPI(title="EASYWhisper Backend")
 
 
 @app.get("/health")

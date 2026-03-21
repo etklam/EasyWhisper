@@ -28,6 +28,17 @@
         </div>
       </n-form-item>
 
+      <n-form-item
+        v-if="localSettings.aiTranslate"
+        :label="t('components.aiQuickToggles.targetLanguage')"
+      >
+        <n-select
+          v-model:value="localSettings.aiTargetLang"
+          data-testid="ai-target-language-select"
+          :options="targetLanguageOptions"
+        />
+      </n-form-item>
+
       <n-button type="primary" block data-testid="save-ai-settings" @click="applySettings">
         {{ t('components.aiQuickToggles.saveSettings') }}
       </n-button>
@@ -45,7 +56,7 @@ import { useWhisperStore } from '@/stores/whisper'
 
 type AiQuickSettings = Pick<
   WorkflowSettings,
-  'aiEnabled' | 'aiCorrect' | 'aiTranslate' | 'aiSummary'
+  'aiEnabled' | 'aiCorrect' | 'aiTranslate' | 'aiSummary' | 'aiTargetLang'
 >
 
 const { t } = useI18n()
@@ -53,6 +64,13 @@ const whisperStore = useWhisperStore()
 const message = useMessage()
 
 const localSettings = reactive<AiQuickSettings>(createFormState(whisperStore.settings))
+const targetLanguageOptions = [
+  { label: '繁体中文', value: 'zh-TW' },
+  { label: '简体中文', value: 'zh-CN' },
+  { label: 'English', value: 'en' },
+  { label: '日本語', value: 'ja' },
+  { label: '한국어', value: 'ko' }
+]
 
 watch(
   () => whisperStore.settings,
@@ -68,7 +86,8 @@ async function applySettings() {
       aiEnabled: localSettings.aiEnabled,
       aiCorrect: localSettings.aiCorrect,
       aiTranslate: localSettings.aiTranslate,
-      aiSummary: localSettings.aiSummary
+      aiSummary: localSettings.aiSummary,
+      aiTargetLang: localSettings.aiTargetLang
     })
     message.success(t('components.aiQuickToggles.settingsSaved'))
   } catch (error) {
@@ -81,7 +100,8 @@ function createFormState(settings: WorkflowSettings): AiQuickSettings {
     aiEnabled: settings.aiEnabled,
     aiCorrect: settings.aiCorrect,
     aiTranslate: settings.aiTranslate,
-    aiSummary: settings.aiSummary
+    aiSummary: settings.aiSummary,
+    aiTargetLang: settings.aiTargetLang
   }
 }
 </script>

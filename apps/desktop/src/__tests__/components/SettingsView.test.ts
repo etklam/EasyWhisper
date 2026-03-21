@@ -21,6 +21,12 @@ vi.mock('@/components/ModelSelector.vue', () => ({
   }
 }))
 
+vi.mock('@/components/AiPanel.vue', () => ({
+  default: {
+    template: '<div data-testid="ai-panel">AI Panel</div>'
+  }
+}))
+
 vi.mock('@/components/YtDlpStatus.vue', () => ({
   default: {
     template: '<div data-testid="ytdlp-status">yt-dlp Status</div>'
@@ -93,6 +99,7 @@ describe('SettingsView', () => {
 
     expect(wrapper.find('[data-testid="default-language-select"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="default-output-location-select"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="ai-panel"]').exists()).toBe(true)
   })
 
   it('saves the selected default output location with transcription settings', async () => {

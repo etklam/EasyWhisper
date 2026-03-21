@@ -20,7 +20,7 @@
     "openSettings": "設定"
   },
   "app": {
-    "title": "FOSSWhisper",
+    "title": "EASYWhisper",
     "subtitleHome": "本機轉錄工作台",
     "subtitleSettings": "管理模型、轉錄與下載設定"
   },
@@ -76,7 +76,7 @@
       "systemDetected": "偵測到系統 yt-dlp",
       "systemModeHint": "使用系統中已安裝的 yt-dlp（Homebrew、pip 等）。您需要自行管理更新。",
       "managedDetected": "偵測到管理的 yt-dlp",
-      "managedModeHint": "FOSSWhisper 將自動管理 yt-dlp 的下載和更新。",
+      "managedModeHint": "EASYWhisper 將自動管理 yt-dlp 的下載和更新。",
       "ready": "yt-dlp 已就緒",
       "version": "版本",
       "source": "來源",
@@ -103,7 +103,7 @@
       "systemDetected": "偵測到系統 ffmpeg",
       "systemModeHint": "使用系統中已安裝的 ffmpeg（Homebrew、apt 等）。您需要自行管理更新。",
       "managedDetected": "偵測到管理的 ffmpeg",
-      "managedModeHint": "FOSSWhisper 將自動管理 ffmpeg 的下載和更新。",
+      "managedModeHint": "EASYWhisper 將自動管理 ffmpeg 的下載和更新。",
       "ready": "ffmpeg 已就緒",
       "version": "版本",
       "source": "來源",
@@ -208,6 +208,7 @@
       "translatePrompt": "翻譯 Prompt",
       "summaryPrompt": "摘要 Prompt",
       "promptPlaceholder": "留空則使用預設 prompt",
+      "resetPrompt": "重設為預設",
       "saveSettings": "儲存 AI 設定",
       "settingsSaved": "AI 設定已儲存",
       "aiTaskStatus": "AI 任務狀態",
@@ -276,6 +277,7 @@
       "enableAiPost": "啟用 AI 後處理",
       "enableAiHint": "轉錄完成後自動進入 AI 佇列",
       "aiSteps": "AI 步驟",
+      "targetLanguage": "翻譯目標語言",
       "stepCorrect": "修正",
       "stepTranslate": "翻譯",
       "stepSummary": "摘要",

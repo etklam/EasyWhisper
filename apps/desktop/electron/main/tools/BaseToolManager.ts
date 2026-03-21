@@ -80,7 +80,7 @@ export abstract class BaseToolManager<TInstallation> {
   private readonly toolRoot: string
   private readonly statePath: string
   private readonly cacheTtlMs: number
-  private readonly userAgent = 'FOSSWhisper/desktop'
+  private readonly userAgent = 'EASYWhisper/desktop'
   private releaseCache?: ReleaseCacheEntry
 
   constructor(private readonly options: BaseToolManagerOptions) {
