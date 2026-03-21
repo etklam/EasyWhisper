@@ -70,4 +70,26 @@ describe('HomeView', () => {
 
     expect(wrapper.find('[data-testid="temporary-language-select"]').exists()).toBe(true)
   })
+
+  it('does not reset stores when the view unmounts', async () => {
+    const whisperStore = useWhisperStore()
+    const queueStore = useQueueStore()
+    const aiStore = useAiStore()
+
+    const queueResetSpy = vi.spyOn(queueStore, 'reset')
+    const whisperResetSpy = vi.spyOn(whisperStore, 'reset')
+    const aiResetSpy = vi.spyOn(aiStore, 'reset')
+
+    const wrapper = mount(HomeView, {
+      global: {
+        plugins: [naive, i18n]
+      }
+    })
+
+    await wrapper.unmount()
+
+    expect(queueResetSpy).not.toHaveBeenCalled()
+    expect(whisperResetSpy).not.toHaveBeenCalled()
+    expect(aiResetSpy).not.toHaveBeenCalled()
+  })
 })

@@ -22,10 +22,12 @@
   },
   "app": {
     "title": "EASYWhisper",
+    "shellEyebrow": "Local-first speech workspace",
     "subtitleHome": "Local Transcription Workspace",
     "subtitleSettings": "Manage models, transcription, and download settings"
   },
   "home": {
+    "workspaceBadge": "Workspace",
     "openOutputFolder": "Open Output Folder",
     "transcriptionLanguage": {
       "title": "Transcription Language",
@@ -50,6 +52,8 @@
   },
   "settings": {
     "title": "Settings",
+    "eyebrow": "Configuration",
+    "heroCopy": "Fine-tune language, model, transcription, download, and AI behavior without leaving the desktop workspace.",
     "language": {
       "title": "Language",
       "en": "English",
@@ -127,9 +131,20 @@
       "defaultLanguage": "Default Language",
       "defaultOutputLocation": "Default Output Location",
       "defaultOutputDir": "Default Output Folder",
+      "groupRuntime": "Performance",
+      "groupRuntimeHint": "Controls how fast transcription runs on this device. Higher settings may use more CPU or GPU resources.",
+      "groupLanguage": "Language Detection",
+      "groupLanguageHint": "Sets the default language for new tasks. You can still override it per task from the workspace.",
+      "groupOutput": "Output Destination",
+      "groupOutputHint": "Defines where new transcription results are saved by default.",
+      "summaryPerformance": "Performance",
+      "summaryLanguage": "Default Language",
+      "summaryOutput": "Default Output",
+      "summaryThreadsUnit": "threads",
       "outputLocationDefault": "System Output Folder",
       "outputLocationSource": "Same Folder as Input File",
       "useMetal": "Enable Metal GPU Acceleration",
+      "useMetalHint": "Uses Apple GPU acceleration when available.",
       "save": "Save Transcription Settings",
       "saved": "Transcription settings saved",
       "saveFailed": "Save failed, please try again",
@@ -186,6 +201,10 @@
       "downloaded": "Downloaded",
       "notDownloaded": "Not Downloaded",
       "downloadingProgress": "Downloading {progress}%",
+      "windowsCompatibilityTitle": "Windows compatibility notice",
+      "platformNote": "Platform note",
+      "platformBlocked": "Unavailable on this device",
+      "largeV3CompatibilityNote": "Large v3 can be used on this device, but it is not supported on Windows. Choose Large v2 if you need Windows compatibility.",
       "windowsUnsupportedLargeV3": "Large v3 is not supported on Windows. Use Large v2 instead."
     },
     "aiPanel": {

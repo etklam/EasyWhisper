@@ -102,6 +102,50 @@ describe('SettingsView', () => {
     expect(wrapper.find('[data-testid="ai-panel"]').exists()).toBe(true)
   })
 
+  it('renders transcription summary cards to clarify the default settings', async () => {
+    const store = useWhisperStore()
+    store.settings.threads = 6
+    store.settings.language = 'ja'
+    store.settings.outputToSourceDir = true
+
+    const wrapper = mount(SettingsView, {
+      global: {
+        plugins: [naive, i18n]
+      }
+    })
+
+    const summary = wrapper.get('[data-testid="transcription-summary"]')
+    expect(summary.text()).toContain('6')
+    expect(summary.text()).toContain('Japanese')
+    expect(summary.text()).toContain('Same Folder as Input File')
+  })
+
+  it('updates transcription language dropdown labels when locale changes', async () => {
+    const wrapper = mount(SettingsView, {
+      global: {
+        plugins: [naive, i18n]
+      }
+    })
+
+    const languageSelect = wrapper.getComponent('[data-testid="default-language-select"]')
+    expect(languageSelect.props('options')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Auto Detect', value: 'auto' }),
+        expect.objectContaining({ label: 'English', value: 'en' })
+      ])
+    )
+
+    i18n.global.locale.value = 'zh-TW'
+    await wrapper.vm.$nextTick()
+
+    expect(languageSelect.props('options')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: '自動偵測', value: 'auto' }),
+        expect.objectContaining({ label: '英文', value: 'en' })
+      ])
+    )
+  })
+
   it('saves the selected default output location with transcription settings', async () => {
     const store = useWhisperStore()
     store.settings.outputToSourceDir = true

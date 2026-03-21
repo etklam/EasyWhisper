@@ -1,3 +1,36 @@
+:root {
+  color-scheme: light;
+  font-family: 'Segoe UI', 'Inter', 'Avenir Next', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(5, 150, 105, 0.12), transparent 24%),
+    linear-gradient(180deg, #f3fcfc 0%, #f8fafc 42%, #ffffff 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --fw-bg: #f4fbfb;
+  --fw-surface: rgba(255, 255, 255, 0.88);
+  --fw-surface-strong: rgba(255, 255, 255, 0.96);
+  --fw-surface-soft: rgba(236, 254, 255, 0.82);
+  --fw-border: rgba(8, 145, 178, 0.14);
+  --fw-border-strong: rgba(8, 145, 178, 0.24);
+  --fw-text: #0f172a;
+  --fw-text-muted: #475569;
+  --fw-title: #164e63;
+  --fw-primary: #0891b2;
+  --fw-primary-strong: #0e7490;
+  --fw-accent: #059669;
+  --fw-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --fw-shadow-soft: 0 10px 26px rgba(14, 116, 144, 0.08);
+  --fw-radius-xl: 24px;
+  --fw-radius-lg: 18px;
+  --fw-radius-md: 14px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -8,5 +41,40 @@ body,
   width: 100%;
   min-height: 100%;
   margin: 0;
-  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+}
+
+body {
+  font-family: 'Segoe UI', 'Inter', 'Avenir Next', sans-serif;
+  color: var(--fw-text);
+  background: var(--fw-bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#app {
+  isolation: isolate;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

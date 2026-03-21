@@ -11,6 +11,7 @@
         @drop.prevent="handleDrop"
         data-testid="drop-target"
       >
+        <div class="drop-target-badge">{{ t('components.importPanel.fileImport') }}</div>
         <p class="title">{{ t('components.importPanel.dragDropTitle') }}</p>
         <p class="hint">{{ t('components.importPanel.dragDropHint', { formats: acceptedLabel }) }}</p>
         <n-button tertiary type="primary" @click="openFilePicker">
@@ -47,7 +48,10 @@
 
       <!-- URL Batch Input -->
       <div class="url-input-area" data-testid="url-input-area">
-        <h3 class="section-title">{{ t('components.importPanel.batchUrlTitle') }}</h3>
+        <div class="section-head">
+          <h3 class="section-title">{{ t('components.importPanel.batchUrlTitle') }}</h3>
+          <span class="section-chip">{{ parsedUrls.length }}</span>
+        </div>
         <n-input
           v-model:value="rawUrlValue"
           type="textarea"
@@ -186,46 +190,65 @@ function submitUrls() {
 
 <style scoped>
 .import-panel {
-  border-radius: 18px;
+  border-radius: var(--fw-radius-lg);
+  border: 1px solid var(--fw-border);
+  background: linear-gradient(180deg, var(--fw-surface-strong), rgba(255, 255, 255, 0.84));
+  box-shadow: var(--fw-shadow-soft);
 }
 
 .panel-content {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .drop-target {
-  border: 2px dashed #9ca3af;
-  border-radius: 14px;
-  padding: 32px 20px;
+  border: 1px dashed rgba(8, 145, 178, 0.32);
+  border-radius: 20px;
+  padding: 28px 20px;
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
-  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   background:
-    radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 46%),
-    linear-gradient(180deg, rgba(240, 253, 244, 0.7), rgba(255, 255, 255, 0.95));
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.14), transparent 46%),
+    linear-gradient(180deg, rgba(236, 254, 255, 0.92), rgba(255, 255, 255, 0.98));
 }
 
 .drop-target.active {
-  border-color: #15803d;
+  border-color: var(--fw-primary);
   background:
-    radial-gradient(circle at top, rgba(34, 197, 94, 0.14), transparent 52%),
-    linear-gradient(180deg, rgba(220, 252, 231, 0.95), rgba(255, 255, 255, 0.98));
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.2), transparent 52%),
+    linear-gradient(180deg, rgba(224, 247, 250, 0.98), rgba(255, 255, 255, 1));
   transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(8, 145, 178, 0.12);
+}
+
+.drop-target-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(8, 145, 178, 0.1);
+  color: var(--fw-primary-strong);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .title {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #14532d;
+  color: var(--fw-title);
 }
 
 .hint {
   margin: 0;
-  color: #4b5563;
+  max-width: 56ch;
+  color: var(--fw-text-muted);
   line-height: 1.5;
 }
 
@@ -245,13 +268,37 @@ function submitUrls() {
 .url-input-area {
   display: grid;
   gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .section-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--fw-title);
+}
+
+.section-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(8, 145, 178, 0.1);
+  color: var(--fw-primary-strong);
+  font-weight: 700;
 }
 
 .toolbar {
@@ -259,5 +306,12 @@ function submitUrls() {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 </style>

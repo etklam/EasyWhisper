@@ -21,10 +21,12 @@
   },
   "app": {
     "title": "EASYWhisper",
+    "shellEyebrow": "本機優先語音工作台",
     "subtitleHome": "本機轉錄工作台",
     "subtitleSettings": "管理模型、轉錄與下載設定"
   },
   "home": {
+    "workspaceBadge": "工作台",
     "openOutputFolder": "開啟輸出資料夾",
     "transcriptionLanguage": {
       "title": "轉錄語言",
@@ -49,6 +51,8 @@
   },
   "settings": {
     "title": "設定",
+    "eyebrow": "系統設定",
+    "heroCopy": "在桌面工作台內直接調整語言、模型、轉錄、下載與 AI 行為，不必切換工作流程。",
     "language": {
       "title": "語言",
       "en": "English",
@@ -126,9 +130,20 @@
       "defaultLanguage": "預設語言",
       "defaultOutputLocation": "預設輸出位置",
       "defaultOutputDir": "預設輸出資料夾",
+      "groupRuntime": "效能",
+      "groupRuntimeHint": "控制這台裝置上的轉錄速度。設定越高，可能使用更多 CPU 或 GPU 資源。",
+      "groupLanguage": "語言辨識",
+      "groupLanguageHint": "設定新任務的預設語言。之後你仍可在工作台對單一任務覆寫。",
+      "groupOutput": "輸出位置",
+      "groupOutputHint": "決定新的轉錄結果預設會存到哪裡。",
+      "summaryPerformance": "效能",
+      "summaryLanguage": "預設語言",
+      "summaryOutput": "預設輸出",
+      "summaryThreadsUnit": "執行緒",
       "outputLocationDefault": "系統輸出位置",
       "outputLocationSource": "與輸入檔相同資料夾",
       "useMetal": "啟用 Metal GPU 加速",
+      "useMetalHint": "在可用時使用 Apple GPU 加速。",
       "save": "儲存轉錄設定",
       "saved": "轉錄設定已儲存",
       "saveFailed": "儲存失敗，請重試",
@@ -185,6 +200,10 @@
       "downloaded": "已下載",
       "notDownloaded": "未下載",
       "downloadingProgress": "下載中 {progress}%",
+      "windowsCompatibilityTitle": "Windows 相容性提示",
+      "platformNote": "平台提示",
+      "platformBlocked": "此裝置不可用",
+      "largeV3CompatibilityNote": "Large v3 可在此裝置使用，但不支援 Windows。若你需要 Windows 相容性，請改用 Large v2。",
       "windowsUnsupportedLargeV3": "Large v3 在 Windows 上不支援，請改用 Large v2。"
     },
     "aiPanel": {

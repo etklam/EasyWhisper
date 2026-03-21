@@ -208,6 +208,8 @@ async function openOutputFolder() {
 <style scoped>
 .queue-item {
   border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.86));
 }
 
 .header {
@@ -234,6 +236,7 @@ async function openOutputFolder() {
   display: block;
   margin-top: 6px;
   word-break: break-all;
+  color: var(--fw-text-muted);
 }
 
 .status-dot {
@@ -242,6 +245,7 @@ async function openOutputFolder() {
   border-radius: 999px;
   margin-top: 7px;
   flex: 0 0 auto;
+  box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
   background: #94a3b8;
 }
 
@@ -280,6 +284,10 @@ async function openOutputFolder() {
 .progress-block {
   display: grid;
   gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .progress-label {
@@ -291,6 +299,9 @@ async function openOutputFolder() {
 .message {
   display: block;
   margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.76);
 }
 
 @media (max-width: 720px) {

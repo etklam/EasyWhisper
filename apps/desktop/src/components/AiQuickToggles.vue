@@ -108,7 +108,10 @@ function createFormState(settings: WorkflowSettings): AiQuickSettings {
 
 <style scoped>
 .ai-quick-toggles {
-  border-radius: 18px;
+  border-radius: var(--fw-radius-lg);
+  border: 1px solid var(--fw-border);
+  background: linear-gradient(180deg, var(--fw-surface-strong), rgba(255, 255, 255, 0.84));
+  box-shadow: var(--fw-shadow-soft);
 }
 
 .switch-row {
@@ -121,7 +124,7 @@ function createFormState(settings: WorkflowSettings): AiQuickSettings {
 
 .switch-hint {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--fw-text-muted);
 }
 
 .step-grid {
@@ -134,8 +137,16 @@ function createFormState(settings: WorkflowSettings): AiQuickSettings {
   justify-content: space-between;
   gap: 8px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.step-toggle:hover {
+  border-color: var(--fw-border-strong);
+  background: rgba(236, 254, 255, 0.78);
 }
 </style>

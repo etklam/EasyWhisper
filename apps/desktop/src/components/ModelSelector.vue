@@ -1,9 +1,23 @@
 <template>
   <n-card :title="t('settings.model.whisperModel')">
     <div class="selector">
+      <div
+        v-if="isWindows"
+        class="platform-warning"
+        data-testid="windows-model-warning"
+      >
+        <strong>{{ t('components.modelSelector.windowsCompatibilityTitle') }}</strong>
+        <span>{{ t('components.modelSelector.windowsUnsupportedLargeV3') }}</span>
+      </div>
+
       <n-radio-group :value="selectedModelId" @update:value="handleSelect">
         <div class="model-list">
-          <div v-for="model in orderedModels" :key="model.id" class="model-item">
+          <div
+            v-for="model in orderedModels"
+            :key="model.id"
+            class="model-item"
+            :class="{ disabled: isModelDisabled(model.id) }"
+          >
             <label class="model-main">
               <n-radio :value="model.id" />
               <div class="model-copy">
@@ -11,6 +25,20 @@
                   <n-text strong>{{ model.label }}</n-text>
                   <n-tag size="small" :type="getStatusType(model.id)">
                     {{ getStatusText(model.id, model.downloaded) }}
+                  </n-tag>
+                  <n-tag
+                    v-if="showsCompatibilityNote(model.id) && !isModelDisabled(model.id)"
+                    size="small"
+                    type="warning"
+                  >
+                    {{ t('components.modelSelector.platformNote') }}
+                  </n-tag>
+                  <n-tag
+                    v-if="isModelDisabled(model.id)"
+                    size="small"
+                    type="warning"
+                  >
+                    {{ t('components.modelSelector.platformBlocked') }}
                   </n-tag>
                 </div>
                 <n-text depth="3">{{ model.id }}</n-text>
@@ -130,11 +158,20 @@ function isModelDisabled(modelId: WhisperModelId): boolean {
   return isWindows && (WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS as readonly string[]).includes(modelId)
 }
 
+function showsCompatibilityNote(modelId: WhisperModelId): boolean {
+  return modelId === 'ggml-large-v3.bin'
+}
+
 function getModelHint(modelId: WhisperModelId): string {
-  if (isWindows && modelId === 'ggml-large-v3.bin') {
+  if (modelId !== 'ggml-large-v3.bin') {
+    return ''
+  }
+
+  if (isWindows) {
     return t('components.modelSelector.windowsUnsupportedLargeV3')
   }
-  return ''
+
+  return t('components.modelSelector.largeV3CompatibilityNote')
 }
 
 async function handleSelect(modelId: string) {
@@ -161,6 +198,17 @@ async function download(modelId: WhisperModelId) {
 <style scoped>
 .selector {
   display: grid;
+  gap: 12px;
+}
+
+.platform-warning {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  background: rgba(254, 249, 195, 0.62);
+  color: #92400e;
 }
 
 .model-list {
@@ -175,7 +223,13 @@ async function download(modelId: WhisperModelId) {
   align-items: center;
   padding: 14px;
   border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
   background: #f8fafc;
+}
+
+.model-item.disabled {
+  border-color: rgba(245, 158, 11, 0.18);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(248, 250, 252, 0.92));
 }
 
 .model-main {
@@ -192,6 +246,7 @@ async function download(modelId: WhisperModelId) {
 
 .model-hint {
   color: #b45309;
+  line-height: 1.45;
 }
 
 .model-header {
