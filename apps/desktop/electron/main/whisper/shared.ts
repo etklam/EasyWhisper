@@ -29,6 +29,7 @@ export const MODEL_CATALOG: Record<WhisperModelId, { label: string }> = {
   'ggml-base.bin': { label: 'Base' },
   'ggml-small.bin': { label: 'Small' },
   'ggml-medium.bin': { label: 'Medium' },
+  'ggml-large-v2.bin': { label: 'Large v2' },
   'ggml-large-v3.bin': { label: 'Large v3' }
 }
 

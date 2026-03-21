@@ -13,6 +13,19 @@
         </div>
         <div class="right-column">
           <AiQuickToggles />
+          <n-card :title="t('home.transcriptionLanguage.title')">
+            <n-form-item :label="t('home.transcriptionLanguage.label')">
+              <n-select
+                data-testid="temporary-language-select"
+                :value="effectiveLanguage"
+                :options="transcriptionLanguageOptions"
+                @update:value="handleTemporaryLanguageChange"
+              />
+            </n-form-item>
+            <n-text depth="3">
+              {{ t('home.transcriptionLanguage.hint') }}
+            </n-text>
+          </n-card>
           <n-card :title="t('home.outputFormats')">
             <n-checkbox-group
               :value="whisperStore.settings.outputFormats"
@@ -32,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { OutputFormat } from '@shared/types'
@@ -42,11 +55,21 @@ import QueueTable from '@/components/QueueTable.vue'
 import { useAiStore } from '@/stores/ai'
 import { useQueueStore } from '@/stores/queue'
 import { useWhisperStore } from '@/stores/whisper'
+import type { TranscriptionLanguageValue } from '@/utils/transcription-language'
 
 const { t } = useI18n()
 const whisperStore = useWhisperStore()
 const queueStore = useQueueStore()
 const aiStore = useAiStore()
+
+const effectiveLanguage = computed(() => whisperStore.getEffectiveLanguage())
+const transcriptionLanguageOptions = computed(() => [
+  { label: t('transcriptionLanguage.auto'), value: 'auto' },
+  { label: t('transcriptionLanguage.en'), value: 'en' },
+  { label: t('transcriptionLanguage.zh'), value: 'zh' },
+  { label: t('transcriptionLanguage.ja'), value: 'ja' },
+  { label: t('transcriptionLanguage.ko'), value: 'ko' }
+])
 
 onMounted(async () => {
   queueStore.bindIpcListeners()
@@ -71,6 +94,10 @@ function handleOutputFormatsChange(formats: string[]) {
   void whisperStore.updateSettings({
     outputFormats: nextFormats
   })
+}
+
+function handleTemporaryLanguageChange(language: string) {
+  whisperStore.setTemporaryLanguage(language as TranscriptionLanguageValue)
 }
 </script>
 

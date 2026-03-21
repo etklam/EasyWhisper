@@ -14,6 +14,7 @@ import type {
   YtDlpProgressEvent
 } from '@shared/types'
 import { parseUrlList } from '@shared/url'
+import type { TranscriptionLanguageValue } from '@/utils/transcription-language'
 
 type TaskSource = 'file' | 'ytdlp'
 
@@ -34,6 +35,7 @@ function createDefaultSettings(): WorkflowSettings {
     language: 'auto',
     useMetal: true,
     outputDir: '',
+    outputToSourceDir: false,
     outputFormats: ['txt', 'srt'],
     ytdlpAudioFormat: 'mp3',
     ytdlpCookiesPath: '',
@@ -53,6 +55,7 @@ export const useWhisperStore = defineStore('whisper', {
   state: () => ({
     tasks: [] as RuntimeTask[],
     settings: createDefaultSettings(),
+    temporaryLanguage: null as TranscriptionLanguageValue | null,
     aiModels: [] as string[],
     models: [] as WhisperModelInfo[],
     modelDownloadProgress: {} as Partial<Record<string, number>>,
@@ -214,6 +217,14 @@ export const useWhisperStore = defineStore('whisper', {
       this.settings = await window.fosswhisper.setSettings(partial)
     },
 
+    setTemporaryLanguage(language: TranscriptionLanguageValue) {
+      this.temporaryLanguage = language
+    },
+
+    getEffectiveLanguage(): string {
+      return this.temporaryLanguage ?? this.settings.language
+    },
+
     async refreshModels() {
       try {
         this.models = await window.fosswhisper.listModels()
@@ -248,6 +259,7 @@ export const useWhisperStore = defineStore('whisper', {
       this.models = []
       this.modelDownloadProgress = {}
       this.outputFormats = []
+      this.temporaryLanguage = null
       this.initialized = false
     },
 
@@ -299,7 +311,7 @@ export const useWhisperStore = defineStore('whisper', {
         taskId: task.id,
         audioPath: task.audioPath,
         modelPath: this.settings.modelPath,
-        language: this.settings.language,
+        language: this.getEffectiveLanguage(),
         threads: this.settings.threads,
         useMetal: this.settings.useMetal,
         outputDir: this.settings.outputDir || undefined

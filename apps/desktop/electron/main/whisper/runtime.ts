@@ -22,9 +22,13 @@ export function getWhisperRuntime(): WhisperRuntime {
     return runtime
   }
 
+  const packagedWhisperDir =
+    app.isPackaged && process.resourcesPath ? path.join(process.resourcesPath, 'mac', 'whisper') : undefined
+
   runtime = new WhisperMac({
     projectRoot: userDataDir,
-    modelsDir: path.join(userDataDir, 'models')
+    modelsDir: path.join(userDataDir, 'models'),
+    whisperDir: packagedWhisperDir
   })
   return runtime
 }

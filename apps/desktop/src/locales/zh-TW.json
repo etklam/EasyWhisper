@@ -25,6 +25,12 @@
     "subtitleSettings": "管理模型、轉錄與下載設定"
   },
   "home": {
+    "openOutputFolder": "開啟輸出資料夾",
+    "transcriptionLanguage": {
+      "title": "轉錄語言",
+      "label": "語言",
+      "hint": "只會用在工作台新啟動的任務，不會改掉你已儲存的預設值。"
+    },
     "dropZone": {
       "title": "拖放音訊或視訊檔案",
       "hint": "支援批次匯入，支援格式：{formats}",
@@ -117,7 +123,11 @@
       "title": "轉錄設定",
       "threads": "執行緒數",
       "language": "語言",
-      "outputDir": "輸出目錄",
+      "defaultLanguage": "預設語言",
+      "defaultOutputLocation": "預設輸出位置",
+      "defaultOutputDir": "預設輸出資料夾",
+      "outputLocationDefault": "系統輸出位置",
+      "outputLocationSource": "與輸入檔相同資料夾",
       "useMetal": "啟用 Metal GPU 加速",
       "save": "儲存轉錄設定",
       "saved": "轉錄設定已儲存",
@@ -145,6 +155,13 @@
       "openFolderFailed": "開啟資料夾失敗：{error}"
     }
   },
+  "transcriptionLanguage": {
+    "auto": "自動偵測",
+    "en": "英文",
+    "zh": "中文",
+    "ja": "日文",
+    "ko": "韓文"
+  },
   "components": {
     "importPanel": {
       "fileImport": "檔案匯入",
@@ -152,6 +169,10 @@
       "dragDropTitle": "拖放音訊或視訊檔案",
       "dragDropHint": "支援批次匯入，支援格式：{formats}",
       "selectFiles": "選擇檔案",
+      "outputLocation": "輸出位置",
+      "outputLocationHint": "這個選項只套用到這次加入佇列的檔案任務。",
+      "outputLocationDefault": "系統輸出位置",
+      "outputLocationSource": "與輸入檔相同資料夾",
       "batchUrlTitle": "批次匯入 URL",
       "urlPlaceholder": "每行輸入一個 URL，支援以 # 開頭的註解行",
       "urlsParsed": "已解析 {count} 個 URL",
@@ -163,7 +184,8 @@
       "download": "下載",
       "downloaded": "已下載",
       "notDownloaded": "未下載",
-      "downloadingProgress": "下載中 {progress}%"
+      "downloadingProgress": "下載中 {progress}%",
+      "windowsUnsupportedLargeV3": "Large v3 在 Windows 上不支援，請改用 Large v2。"
     },
     "aiPanel": {
       "title": "AI 功能面板",
@@ -211,6 +233,7 @@
       "empty": "佇列為空，請先匯入檔案或 URL"
     },
     "queueItem": {
+      "openOutputFolder": "開啟輸出資料夾",
       "sourceFile": "檔案",
       "sourceUrl": "URL",
       "statusPending": "等待中",

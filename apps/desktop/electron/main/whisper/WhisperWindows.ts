@@ -11,6 +11,7 @@ import type {
   WhisperModelInfo,
   WhisperProgressEvent
 } from '@shared/index'
+import { WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS } from '@shared/index'
 import { createLineBuffer } from '../utils/lineBuffer'
 import {
   downloadWhisperModel,
@@ -55,11 +56,16 @@ export class WhisperWindows implements WhisperRuntime {
     const outputPath = await this.getOutputPath(options)
     const runtimeFiles = await this.resolveRuntimeFiles()
     const modelPath = await resolveModelPath(this.modelsDir, options.modelPath)
+    const modelId = path.basename(modelPath) as WhisperModelId
 
     if (!runtimeFiles) {
       throw new Error(
         'WhisperCLI.exe not found. Install the Windows const-me runtime under resources/win or set WHISPER_WINDOWS_CLI_PATH.'
       )
+    }
+
+    if ((WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS as readonly string[]).includes(modelId)) {
+      throw new Error(`Model ${modelId} is not supported on Windows. Use ggml-large-v2.bin instead.`)
     }
 
     return new Promise((resolve, reject) => {
@@ -172,7 +178,7 @@ export class WhisperWindows implements WhisperRuntime {
   private async getOutputPath(options: WhisperTranscribeOptions): Promise<string> {
     const outputDir = options.outputDir ?? path.join(this.userDataDir, 'outputs')
     await mkdir(outputDir, { recursive: true })
-    return path.join(outputDir, `${options.taskId}.json`)
+    return path.join(outputDir, `${sanitizeOutputFileStem(options.outputFileStem ?? options.taskId)}.json`)
   }
 
   private async resolveRuntimeFiles(): Promise<WhisperWindowsRuntimeFiles | null> {
@@ -197,8 +203,23 @@ export class WhisperWindows implements WhisperRuntime {
 
   private async readTranscriptionText(outputPath: string): Promise<string> {
     const raw = await readFile(outputPath, 'utf8')
-    const json = JSON.parse(raw) as { text?: string }
-    return json.text ?? ''
+    const json = JSON.parse(raw) as {
+      text?: string
+      transcription?: Array<{ text?: string }>
+    }
+
+    if (typeof json.text === 'string' && json.text.trim().length > 0) {
+      return json.text
+    }
+
+    if (Array.isArray(json.transcription)) {
+      return json.transcription
+        .map((segment) => (typeof segment.text === 'string' ? segment.text.trim() : ''))
+        .filter((text) => text.length > 0)
+        .join(' ')
+    }
+
+    return ''
   }
 }
 
@@ -249,6 +270,14 @@ export function parseWrapperProgressLine(
       message: line
     }
   }
+}
+
+function sanitizeOutputFileStem(value: string): string {
+  const sanitized = value
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+    .trim()
+
+  return sanitized.length > 0 ? sanitized : 'output'
 }
 
 function parsePercentProgress(line: string): number | null {

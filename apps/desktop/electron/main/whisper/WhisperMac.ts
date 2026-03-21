@@ -161,6 +161,7 @@ export class WhisperMac implements WhisperRuntime {
   private async resolveWhisperCliPath(): Promise<string | null> {
     const candidates = [
       process.env.WHISPER_CLI_PATH,
+      path.resolve(this.whisperDir, 'whisper-cli'),
       path.resolve(this.whisperDir, 'build/main/whisper-cli'),
       path.resolve(this.whisperDir, 'build/main/bin/whisper-cli'),
       path.resolve(this.whisperDir, 'build/bin/whisper-cli'),
@@ -206,13 +207,28 @@ export class WhisperMac implements WhisperRuntime {
   private async getOutputPath(options: WhisperTranscribeOptions): Promise<string> {
     const outputDir = options.outputDir ?? path.resolve(this.projectRoot, 'outputs')
     await mkdir(outputDir, { recursive: true })
-    return path.join(outputDir, `${options.taskId}.json`)
+    return path.join(outputDir, `${sanitizeOutputFileStem(options.outputFileStem ?? options.taskId)}.json`)
   }
 
   private async readTranscriptionText(outputPath: string): Promise<string> {
     const raw = await readFile(outputPath, 'utf8')
-    const json = JSON.parse(raw) as { text?: string }
-    return json.text ?? ''
+    const json = JSON.parse(raw) as {
+      text?: string
+      transcription?: Array<{ text?: string }>
+    }
+
+    if (typeof json.text === 'string' && json.text.trim().length > 0) {
+      return json.text
+    }
+
+    if (Array.isArray(json.transcription)) {
+      return json.transcription
+        .map((segment) => (typeof segment.text === 'string' ? segment.text.trim() : ''))
+        .filter((text) => text.length > 0)
+        .join(' ')
+    }
+
+    return ''
   }
 
   private async mockTranscribe(
@@ -273,4 +289,12 @@ function wait(ms: number): Promise<void> {
 
 function isTestRuntime(): boolean {
   return process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
+}
+
+function sanitizeOutputFileStem(value: string): string {
+  const sanitized = value
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+    .trim()
+
+  return sanitized.length > 0 ? sanitized : 'output'
 }

@@ -25,6 +25,12 @@
     "subtitleSettings": "管理模型、转录与下载设置"
   },
   "home": {
+    "openOutputFolder": "打开输出文件夹",
+    "transcriptionLanguage": {
+      "title": "转录语言",
+      "label": "语言",
+      "hint": "只用于从工作台新启动的任务，不会改掉你保存的默认值。"
+    },
     "dropZone": {
       "title": "拖放音频或视频文件",
       "hint": "支持批量导入，支持格式：{formats}",
@@ -117,7 +123,11 @@
       "title": "转录设置",
       "threads": "线程数",
       "language": "语言",
-      "outputDir": "输出目录",
+      "defaultLanguage": "默认语言",
+      "defaultOutputLocation": "默认输出位置",
+      "defaultOutputDir": "默认输出文件夹",
+      "outputLocationDefault": "系统输出位置",
+      "outputLocationSource": "与输入文件相同文件夹",
       "useMetal": "启用 Metal GPU 加速",
       "save": "保存转录设置",
       "saved": "转录设置已保存",
@@ -145,6 +155,13 @@
       "openFolderFailed": "打开文件夹失败：{error}"
     }
   },
+  "transcriptionLanguage": {
+    "auto": "自动检测",
+    "en": "英文",
+    "zh": "中文",
+    "ja": "日文",
+    "ko": "韩文"
+  },
   "components": {
     "importPanel": {
       "fileImport": "文件导入",
@@ -152,6 +169,10 @@
       "dragDropTitle": "拖放音频或视频文件",
       "dragDropHint": "支持批量导入，支持格式：{formats}",
       "selectFiles": "选择文件",
+      "outputLocation": "输出位置",
+      "outputLocationHint": "这个选项只会应用到这次加入队列的文件任务。",
+      "outputLocationDefault": "系统输出位置",
+      "outputLocationSource": "与输入文件相同文件夹",
       "batchUrlTitle": "批量导入 URL",
       "urlPlaceholder": "每行输入一个 URL，支持以 # 开头的注释行",
       "urlsParsed": "已解析 {count} 个 URL",
@@ -163,7 +184,8 @@
       "download": "下载",
       "downloaded": "已下载",
       "notDownloaded": "未下载",
-      "downloadingProgress": "下载中 {progress}%"
+      "downloadingProgress": "下载中 {progress}%",
+      "windowsUnsupportedLargeV3": "Large v3 在 Windows 上不支持，请改用 Large v2。"
     },
     "aiPanel": {
       "title": "AI 功能面板",
@@ -211,6 +233,7 @@
       "empty": "队列为空，先导入文件或 URL"
     },
     "queueItem": {
+      "openOutputFolder": "打开输出文件夹",
       "sourceFile": "文件",
       "sourceUrl": "URL",
       "statusPending": "等待中",

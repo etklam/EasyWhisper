@@ -9,9 +9,10 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "stage:mac:whisper": "node ./scripts/stage_mac_whisper_runtime.mjs",
     "stage:win:whisper": "node ./scripts/stage_windows_whisper_runtime.mjs",
-    "package:mac:dir": "pnpm run build && electron-builder --mac dir",
-    "package:mac": "pnpm run build && electron-builder --mac dir dmg",
+    "package:mac:dir": "pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir",
+    "package:mac": "pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir dmg",
     "package:win:dir": "node ./scripts/clean_windows_release.mjs && pnpm run build && electron-builder --win dir",
     "package:win": "node ./scripts/clean_windows_release.mjs && pnpm run build && electron-builder --win nsis",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
@@ -55,6 +56,13 @@
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "resources/mac",
+        "to": "mac",
+        "filter": [
+          "**/*"
+        ]
+      },
       {
         "from": "resources/versions.json",
         "to": "versions.json"

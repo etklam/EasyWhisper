@@ -42,11 +42,25 @@
             <n-form-item-gi span="2 m:1" :label="t('settings.transcription.threads')">
               <n-input-number v-model:value="localSettings.threads" :min="1" :max="16" />
             </n-form-item-gi>
-            <n-form-item-gi span="2 m:1" :label="t('settings.transcription.language')">
-              <n-input v-model:value="localSettings.language" placeholder="auto" />
+            <n-form-item-gi span="2 m:1" :label="t('settings.transcription.defaultLanguage')">
+              <n-select
+                data-testid="default-language-select"
+                v-model:value="localSettings.language"
+                :options="transcriptionLanguageOptions"
+              />
             </n-form-item-gi>
-            <n-form-item-gi span="2" :label="t('settings.transcription.outputDir')">
-              <n-input v-model:value="localSettings.outputDir" :placeholder="t('home.dropZone.title')" />
+            <n-form-item-gi span="2 m:1" :label="t('settings.transcription.defaultOutputLocation')">
+              <n-select
+                v-model:value="defaultOutputLocation"
+                data-testid="default-output-location-select"
+                :options="defaultOutputLocationOptions"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi span="2" :label="t('settings.transcription.defaultOutputDir')">
+              <n-input
+                v-model:value="localSettings.outputDir"
+                :placeholder="t('settings.transcription.outputDirPlaceholder')"
+              />
             </n-form-item-gi>
           </n-grid>
 
@@ -99,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { computed, ref, reactive, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { WorkflowSettings } from '@shared/types'
@@ -122,6 +136,24 @@ const localeOptions = [
   { label: '简体中文', value: 'zh-CN' },
   { label: '繁體中文', value: 'zh-TW' }
 ]
+
+const transcriptionLanguageOptions = [
+  { label: t('transcriptionLanguage.auto'), value: 'auto' },
+  { label: t('transcriptionLanguage.en'), value: 'en' },
+  { label: t('transcriptionLanguage.zh'), value: 'zh' },
+  { label: t('transcriptionLanguage.ja'), value: 'ja' },
+  { label: t('transcriptionLanguage.ko'), value: 'ko' }
+]
+const defaultOutputLocationOptions = computed(() => [
+  { label: t('settings.transcription.outputLocationDefault'), value: 'default' },
+  { label: t('settings.transcription.outputLocationSource'), value: 'source' }
+])
+const defaultOutputLocation = computed<'default' | 'source'>({
+  get: () => (localSettings.outputToSourceDir ? 'source' : 'default'),
+  set: (value) => {
+    localSettings.outputToSourceDir = value === 'source'
+  }
+})
 
 watch(
   () => whisperStore.settings,
@@ -167,7 +199,8 @@ async function applyTranscriptionSettings() {
       threads: localSettings.threads,
       language: localSettings.language,
       useMetal: localSettings.useMetal,
-      outputDir: localSettings.outputDir
+      outputDir: localSettings.outputDir,
+      outputToSourceDir: localSettings.outputToSourceDir
     })
     message.success(t('settings.transcription.saved'))
   } catch {

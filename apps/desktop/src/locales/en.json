@@ -26,6 +26,12 @@
     "subtitleSettings": "Manage models, transcription, and download settings"
   },
   "home": {
+    "openOutputFolder": "Open Output Folder",
+    "transcriptionLanguage": {
+      "title": "Transcription Language",
+      "label": "Language",
+      "hint": "Used for tasks started from the workspace. This does not change your saved default."
+    },
     "dropZone": {
       "title": "Drag and drop audio or video files",
       "hint": "Batch import supported. Supported formats: {formats}",
@@ -118,7 +124,11 @@
       "title": "Transcription Settings",
       "threads": "Threads",
       "language": "Language",
-      "outputDir": "Output Directory",
+      "defaultLanguage": "Default Language",
+      "defaultOutputLocation": "Default Output Location",
+      "defaultOutputDir": "Default Output Folder",
+      "outputLocationDefault": "System Output Folder",
+      "outputLocationSource": "Same Folder as Input File",
       "useMetal": "Enable Metal GPU Acceleration",
       "save": "Save Transcription Settings",
       "saved": "Transcription settings saved",
@@ -146,6 +156,13 @@
       "openFolderFailed": "Failed to open folder: {error}"
     }
   },
+  "transcriptionLanguage": {
+    "auto": "Auto Detect",
+    "en": "English",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean"
+  },
   "components": {
     "importPanel": {
       "fileImport": "File Import",
@@ -153,6 +170,10 @@
       "dragDropTitle": "Drag and drop audio or video files",
       "dragDropHint": "Batch import supported. Supported formats: {formats}",
       "selectFiles": "Select Files",
+      "outputLocation": "Output Location",
+      "outputLocationHint": "This only applies to the file tasks you add right now.",
+      "outputLocationDefault": "System Output Folder",
+      "outputLocationSource": "Same Folder as Input File",
       "batchUrlTitle": "Batch Import URLs",
       "urlPlaceholder": "Enter one URL per line, supports # comments",
       "urlsParsed": "Parsed {count} URLs",
@@ -164,7 +185,8 @@
       "download": "Download",
       "downloaded": "Downloaded",
       "notDownloaded": "Not Downloaded",
-      "downloadingProgress": "Downloading {progress}%"
+      "downloadingProgress": "Downloading {progress}%",
+      "windowsUnsupportedLargeV3": "Large v3 is not supported on Windows. Use Large v2 instead."
     },
     "aiPanel": {
       "title": "AI Feature Panel",
@@ -212,6 +234,7 @@
       "empty": "Queue is empty, import files or URLs first"
     },
     "queueItem": {
+      "openOutputFolder": "Open Output Folder",
       "sourceFile": "File",
       "sourceUrl": "URL",
       "statusPending": "Pending",

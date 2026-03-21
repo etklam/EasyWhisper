@@ -84,6 +84,37 @@ describe('SettingsView', () => {
     expect(message.success).not.toHaveBeenCalled()
   })
 
+  it('renders the default transcription language dropdown', async () => {
+    const wrapper = mount(SettingsView, {
+      global: {
+        plugins: [naive, i18n]
+      }
+    })
+
+    expect(wrapper.find('[data-testid="default-language-select"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="default-output-location-select"]').exists()).toBe(true)
+  })
+
+  it('saves the selected default output location with transcription settings', async () => {
+    const store = useWhisperStore()
+    store.settings.outputToSourceDir = true
+    const updateSettingsSpy = vi.spyOn(store, 'updateSettings').mockResolvedValue(undefined)
+
+    const wrapper = mount(SettingsView, {
+      global: {
+        plugins: [naive, i18n]
+      }
+    })
+
+    await wrapper.get('[data-testid="save-transcription-settings"]').trigger('click')
+
+    expect(updateSettingsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outputToSourceDir: true
+      })
+    )
+  })
+
   describe('Folder actions', () => {
     it('opens model folder when button is clicked', async () => {
       mockOpenModelFolder.mockResolvedValue({ ok: true, path: '/models' })

@@ -8,7 +8,7 @@ import type { SettingsSchema } from '@shared/settings.schema'
 import { settingsManager } from '../settings'
 
 function getDefaultOutputDir(): string {
-  return path.join(app.getPath('documents'), 'FOSSWhisper')
+  return path.join(app.getPath('userData'), 'outputs')
 }
 
 export function registerSettingsIpc(): void {
@@ -58,6 +58,7 @@ function toWorkflowSettings(settings: SettingsSchema): WorkflowSettings {
     language: settings.whisperLanguage ?? 'auto',
     useMetal: settings.whisperUseMetal ?? true,
     outputDir: settings.outputDir,
+    outputToSourceDir: settings.outputToSourceDir ?? false,
     outputFormats: settings.outputFormats,
     ytdlpAudioFormat: settings.ytdlpAudioFormat,
     ytdlpCookiesPath: settings.ytdlpCookiesPath ?? '',
@@ -82,6 +83,7 @@ function toSettingsPatch(partial: Partial<WorkflowSettings>): Partial<SettingsSc
   if (partial.language !== undefined) next.whisperLanguage = partial.language
   if (partial.useMetal !== undefined) next.whisperUseMetal = partial.useMetal
   if (partial.outputDir !== undefined) next.outputDir = partial.outputDir
+  if (partial.outputToSourceDir !== undefined) next.outputToSourceDir = partial.outputToSourceDir
   if (partial.outputFormats !== undefined) next.outputFormats = partial.outputFormats
   if (partial.ytdlpAudioFormat !== undefined) next.ytdlpAudioFormat = partial.ytdlpAudioFormat
   if (partial.ytdlpCookiesPath !== undefined) next.ytdlpCookiesPath = partial.ytdlpCookiesPath || undefined

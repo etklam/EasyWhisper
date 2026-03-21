@@ -237,7 +237,7 @@ describe('Core IPC handlers', () => {
     expect(showItemInFolderMock).toHaveBeenCalledWith('/tmp/custom-output/.keep')
   })
 
-  it('falls back to Documents/FOSSWhisper when outputDir is empty', async () => {
+  it('falls back to userData/outputs when outputDir is empty', async () => {
     getSettingsMock.mockReturnValueOnce({
       ...getSettingsMock.mock.results[0]?.value,
       outputDir: ''
@@ -247,11 +247,11 @@ describe('Core IPC handlers', () => {
     const openOutputFolderHandler = getHandler('settings:open-output-folder')
     await expect(openOutputFolderHandler({}, undefined)).resolves.toEqual({
       ok: true,
-      path: '/tmp/Documents/FOSSWhisper'
+      path: '/tmp/userData/outputs'
     })
 
-    expect(app.getPath).toHaveBeenCalledWith('documents')
-    expect(showItemInFolderMock).toHaveBeenCalledWith('/tmp/Documents/FOSSWhisper/.keep')
+    expect(app.getPath).toHaveBeenCalledWith('userData')
+    expect(showItemInFolderMock).toHaveBeenCalledWith('/tmp/userData/outputs/.keep')
   })
 
   it('returns error response when opening folders fails', async () => {

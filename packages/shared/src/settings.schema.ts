@@ -9,6 +9,7 @@ export interface SettingsSchema {
   whisperLanguage?: string
   whisperUseMetal?: boolean
   outputDir: string
+  outputToSourceDir?: boolean
   outputFormats: ('txt' | 'srt' | 'vtt' | 'json')[]
   maxTranscribeConcurrency: number  // Whisper 佇列並行數，預設 1
   maxAiConcurrency: number          // AI 佇列並行數，預設 2

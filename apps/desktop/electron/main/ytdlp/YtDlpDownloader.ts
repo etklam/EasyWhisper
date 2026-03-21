@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { randomUUID } from 'node:crypto'
-import { readFile, unlink } from 'node:fs/promises'
+import { access, mkdir, readFile, rename, unlink } from 'node:fs/promises'
 import path from 'node:path'
 
 import { parseUrlList } from '@shared/url'
@@ -10,6 +10,8 @@ import { createLineBuffer } from '../utils/lineBuffer'
 export interface DownloadOptions {
   format?: (typeof YTDLP_AUDIO_FORMATS)[number]
   cookiesPath?: string
+  ffmpegPath?: string
+  jsRuntimes?: string[]
   onProgress?: (progress: number) => void
 }
 
@@ -28,8 +30,10 @@ export class YtDlpDownloader {
 
   async downloadAudio(taskId: string, url: string, options: DownloadOptions = {}): Promise<string> {
     const format = options.format ?? 'mp3'
+    await mkdir(this.tmpDir, { recursive: true })
     const outputTemplate = path.join(this.tmpDir, '%(title)s.%(ext)s')
     const pathFile = path.join(this.tmpDir, `ytdlp-path-${randomUUID()}.txt`)
+    const titleFile = path.join(this.tmpDir, `ytdlp-title-${randomUUID()}.txt`)
     const args = [
       url,
       '--extract-audio',
@@ -41,6 +45,9 @@ export class YtDlpDownloader {
       '-o',
       outputTemplate,
       '--print-to-file',
+      '%(title)s',
+      titleFile,
+      '--print-to-file',
       'after_move:filepath',
       pathFile,
       '--newline'
@@ -48,6 +55,15 @@ export class YtDlpDownloader {
 
     if (options.cookiesPath) {
       args.push('--cookies', options.cookiesPath)
+    }
+
+    const ffmpegLocation = resolveFfmpegLocation(options.ffmpegPath)
+    if (ffmpegLocation) {
+      args.push('--ffmpeg-location', ffmpegLocation)
+    }
+
+    if (options.jsRuntimes && options.jsRuntimes.length > 0) {
+      args.push('--js-runtimes', options.jsRuntimes.join(','))
     }
 
     await new Promise<void>((resolve, reject) => {
@@ -100,7 +116,7 @@ export class YtDlpDownloader {
 
     try {
       const outputPath = (await readFile(pathFile, 'utf8')).trim()
-      return outputPath
+      return await this.renameDownloadedFile(outputPath, titleFile)
     } catch (error) {
       throw {
         code: 'YTDLP_PATH_READ_FAILED',
@@ -109,6 +125,11 @@ export class YtDlpDownloader {
     } finally {
       try {
         await unlink(pathFile)
+      } catch {
+        // noop
+      }
+      try {
+        await unlink(titleFile)
       } catch {
         // noop
       }
@@ -127,5 +148,61 @@ export class YtDlpDownloader {
 
     return proc.kill('SIGTERM')
   }
+
+  private async renameDownloadedFile(outputPath: string, titleFile: string): Promise<string> {
+    const rawTitle = await readFile(titleFile, 'utf8').catch(() => '')
+    const sanitizedStem = sanitizeFileStem(rawTitle)
+    if (!sanitizedStem) {
+      return outputPath
+    }
+
+    const extension = path.extname(outputPath)
+    const directory = path.dirname(outputPath)
+    const originalStem = path.basename(outputPath, extension)
+    if (originalStem === sanitizedStem) {
+      return outputPath
+    }
+
+    const targetPath = await findAvailablePath(directory, sanitizedStem, extension)
+    await rename(outputPath, targetPath)
+    return targetPath
+  }
 }
 export { parseUrlList }
+
+function resolveFfmpegLocation(ffmpegPath?: string): string | undefined {
+  if (!ffmpegPath) {
+    return undefined
+  }
+
+  const normalized = path.normalize(ffmpegPath)
+  const baseName = path.basename(normalized).toLowerCase()
+
+  if (baseName === 'ffmpeg' || baseName === 'ffmpeg.exe') {
+    return path.dirname(normalized)
+  }
+
+  return normalized
+}
+
+function sanitizeFileStem(value: string): string {
+  return value
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+async function findAvailablePath(directory: string, baseName: string, extension: string): Promise<string> {
+  for (let index = 0; index < 1000; index += 1) {
+    const suffix = index === 0 ? '' : `-${index + 1}`
+    const candidate = path.join(directory, `${baseName}${suffix}${extension}`)
+
+    try {
+      await access(candidate)
+    } catch {
+      return candidate
+    }
+  }
+
+  return path.join(directory, `${baseName}-${randomUUID()}${extension}`)
+}

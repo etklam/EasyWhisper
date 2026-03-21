@@ -5,6 +5,11 @@ export const WHISPER_MODEL_IDS = [
   'ggml-base.bin',
   'ggml-small.bin',
   'ggml-medium.bin',
+  'ggml-large-v2.bin',
+  'ggml-large-v3.bin'
+] as const
+
+export const WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS = [
   'ggml-large-v3.bin'
 ] as const
 
@@ -51,6 +56,7 @@ export interface WhisperStartPayload {
   threads?: number
   useMetal?: boolean
   outputDir?: string
+  outputFileStem?: string
 }
 
 export interface WhisperStartResponse {
@@ -83,6 +89,7 @@ export interface WhisperSettings {
   language: string
   useMetal: boolean
   outputDir: string
+  outputToSourceDir?: boolean
 }
 
 export interface WorkflowSettings extends WhisperSettings {

@@ -8,7 +8,8 @@ const { getPathMock, whisperMacCtor, whisperWindowsCtor } = vi.hoisted(() => ({
 
 vi.mock('electron', () => ({
   app: {
-    getPath: getPathMock
+    getPath: getPathMock,
+    isPackaged: false
   }
 }))
 
@@ -33,7 +34,8 @@ describe('getWhisperRuntime', () => {
     expect(getWhisperRuntime()).toEqual({ kind: 'mac' })
     expect(whisperMacCtor).toHaveBeenCalledWith({
       projectRoot: '/tmp/userData',
-      modelsDir: '/tmp/userData/models'
+      modelsDir: '/tmp/userData/models',
+      whisperDir: undefined
     })
   })
 

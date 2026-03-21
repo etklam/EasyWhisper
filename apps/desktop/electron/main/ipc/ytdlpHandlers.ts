@@ -16,8 +16,10 @@ import type {
 } from '@shared/types'
 import { YtDlpDetector } from '../ytdlp/YtDlpDetector'
 import { YtDlpDownloader } from '../ytdlp/YtDlpDownloader'
+import { detectSupportedJsRuntimes } from '../ytdlp/JsRuntimeDetector'
 import { getToolsManager } from '../tools'
 import { settingsManager } from '../settings'
+import { FfmpegDetector } from '../audio/FfmpegDetector'
 import { createManagedDownloadOptions, createToolProgressEmitter, formatToolError } from '../tools/toolIpc'
 
 type ToolMode = 'system' | 'managed'
@@ -47,6 +49,21 @@ async function getYtDlpPathByMode(mode: ToolMode, toolProvider = getToolsManager
 function createDownloader(ytDlpPath: string): YtDlpDownloader {
   const tmpDir = path.join(app.getPath('temp'), 'fosswhisper-ytdlp')
   return new YtDlpDownloader(ytDlpPath, tmpDir)
+}
+
+async function resolveFfmpegPath(): Promise<string | undefined> {
+  const mode = settingsManager.getSetting('ffmpegMode') ?? 'system'
+
+  if (mode === 'managed') {
+    const installation = await getToolsManager().getFfmpegManager().getManagedInfo()
+    if (installation.type !== 'none' && installation.path) {
+      return installation.path
+    }
+    return undefined
+  }
+
+  const installation = await new FfmpegDetector().detect()
+  return installation.type !== 'none' ? installation.path : undefined
 }
 
 export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
@@ -129,6 +146,8 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
         .downloadAudio(taskId, payload.url, {
           format: payload.format,
           cookiesPath: payload.cookiesPath,
+          ffmpegPath: await resolveFfmpegPath(),
+          jsRuntimes: detectSupportedJsRuntimes(),
           onProgress: (progress: number) => {
             const event: YtDlpProgressEvent = {
               taskId,

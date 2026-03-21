@@ -64,7 +64,8 @@ describe('WhisperIPC', () => {
       audioPath: '/path/to/audio.mp3',
       modelPath: '/path/to/model.bin',
       language: 'en',
-      threads: 4
+      threads: 4,
+      outputFileStem: 'My Video Title'
     }
 
     const result = await handler({}, payload)

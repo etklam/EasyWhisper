@@ -236,6 +236,7 @@ describe('Whisper models', () => {
       'ggml-base.bin',
       'ggml-small.bin',
       'ggml-medium.bin',
+      'ggml-large-v2.bin',
       'ggml-large-v3.bin'
     ])
   })

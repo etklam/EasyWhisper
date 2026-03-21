@@ -14,6 +14,9 @@
                   </n-tag>
                 </div>
                 <n-text depth="3">{{ model.id }}</n-text>
+                <n-text v-if="getModelHint(model.id)" depth="3" class="model-hint">
+                  {{ getModelHint(model.id) }}
+                </n-text>
               </div>
             </label>
 
@@ -29,7 +32,7 @@
                 size="small"
                 secondary
                 :loading="isDownloading(model.id)"
-                :disabled="model.downloaded"
+                :disabled="model.downloaded || isModelDisabled(model.id)"
                 @click="download(model.id)"
               >
                 {{ model.downloaded ? t('components.modelSelector.downloaded') : t('components.modelSelector.download') }}
@@ -47,7 +50,12 @@ import { computed, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
-import { WHISPER_MODEL_IDS, type WhisperModelId, type WhisperModelInfo } from '@shared/types'
+import {
+  WHISPER_MODEL_IDS,
+  WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS,
+  type WhisperModelId,
+  type WhisperModelInfo
+} from '@shared/types'
 import { useWhisperStore } from '@/stores/whisper'
 
 const { t } = useI18n()
@@ -58,8 +66,11 @@ const MODEL_LABELS: Record<WhisperModelId, string> = {
   'ggml-base.bin': 'Base',
   'ggml-small.bin': 'Small',
   'ggml-medium.bin': 'Medium',
+  'ggml-large-v2.bin': 'Large v2',
   'ggml-large-v3.bin': 'Large v3'
 }
+
+const isWindows = navigator.userAgent.toLowerCase().includes('windows')
 
 const selectedModelId = computed(() => normalizeModelId(whisperStore.settings.modelPath))
 
@@ -115,7 +126,23 @@ function getStatusType(modelId: WhisperModelId): 'default' | 'info' | 'success' 
   return orderedModels.value.find((item) => item.id === modelId)?.downloaded ? 'success' : 'default'
 }
 
+function isModelDisabled(modelId: WhisperModelId): boolean {
+  return isWindows && (WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS as readonly string[]).includes(modelId)
+}
+
+function getModelHint(modelId: WhisperModelId): string {
+  if (isWindows && modelId === 'ggml-large-v3.bin') {
+    return t('components.modelSelector.windowsUnsupportedLargeV3')
+  }
+  return ''
+}
+
 async function handleSelect(modelId: string) {
+  if (isModelDisabled(modelId as WhisperModelId)) {
+    message.warning(t('components.modelSelector.windowsUnsupportedLargeV3'))
+    return
+  }
+
   await whisperStore.updateSettings({
     modelPath: modelId
   })
@@ -161,6 +188,10 @@ async function download(modelId: WhisperModelId) {
 .model-copy {
   display: grid;
   gap: 4px;
+}
+
+.model-hint {
+  color: #b45309;
 }
 
 .model-header {

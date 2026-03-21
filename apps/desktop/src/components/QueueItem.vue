@@ -17,6 +17,15 @@
       </div>
 
       <div class="actions">
+        <n-button
+          size="small"
+          tertiary
+          type="primary"
+          @click="openOutputFolder"
+          :disabled="openOutputDisabled"
+        >
+          {{ t('components.queueItem.openOutputFolder') }}
+        </n-button>
         <n-button size="small" tertiary @click="queueStore.togglePause(task.id)" :disabled="pauseDisabled">
           {{ task.paused ? t('components.queueItem.resume') : t('components.queueItem.pause') }}
         </n-button>
@@ -89,6 +98,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
 import type { AiTaskType } from '@shared/types'
@@ -100,6 +110,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const message = useMessage()
 const queueStore = useQueueStore()
 
 const sourceLabel = computed(() =>
@@ -109,6 +120,7 @@ const sourceTagType = computed(() => (props.task.source === 'file' ? 'default' :
 const pauseDisabled = computed(() => props.task.status !== 'pending' && !props.task.paused)
 const cancelDisabled = computed(() => props.task.status === 'done' || props.task.status === 'error')
 const retryDisabled = computed(() => props.task.status !== 'error')
+const openOutputDisabled = computed(() => !resolveOpenPath())
 const hasAiResults = computed(() => Object.keys(props.task.aiResults).length > 0)
 const aiResultLabels = computed(() =>
   Object.keys(props.task.aiResults).map((taskType) => aiStepLabel(taskType as AiTaskType))
@@ -164,6 +176,32 @@ function translateMaybeKey(
   }
 
   return t(value, resolvedParams)
+}
+
+function resolveOpenPath(): string | undefined {
+  return props.task.outputPath ?? props.task.sourcePath ?? props.task.filePath
+}
+
+async function openOutputFolder() {
+  const openPath = resolveOpenPath()
+  if (!openPath) {
+    return
+  }
+
+  try {
+    const result = await window.fosswhisper.openFolder(openPath)
+    if (result.ok) {
+      message.success(t('settings.messages.folderOpened'))
+    } else {
+      message.error(t('settings.messages.openFolderFailed', { error: result.error }))
+    }
+  } catch (error) {
+    message.error(
+      t('settings.messages.openFolderFailed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
+    )
+  }
 }
 </script>
 

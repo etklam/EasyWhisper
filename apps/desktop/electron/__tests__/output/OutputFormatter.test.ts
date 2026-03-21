@@ -96,6 +96,12 @@ describe('OutputFormatter', () => {
       expect(result).toBe('')
     })
 
+    it('should tolerate missing segments', () => {
+      const missingSegments = { text: 'hello' } as WhisperResult
+
+      expect(formatter.formatAsSrt(missingSegments)).toBe('')
+    })
+
     it('should handle long segments', () => {
       const longSegment: WhisperResult = {
         text: 'Long text segment.',
@@ -153,6 +159,12 @@ describe('OutputFormatter', () => {
       const result = formatter.formatAsVtt(emptyResult)
 
       expect(result).toBe('WEBVTT\n')
+    })
+
+    it('should tolerate missing segments', () => {
+      const missingSegments = { text: 'hello' } as WhisperResult
+
+      expect(formatter.formatAsVtt(missingSegments)).toBe('WEBVTT\n')
     })
   })
 
@@ -288,6 +300,49 @@ describe('OutputFormatter', () => {
 
       expect(txtResult).toBe('Spoken text.')
     })
+
+    it('should tolerate missing segment text in subtitle formats', () => {
+      const incompleteResult = {
+        text: 'Recovered from segments',
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0,
+            end: 1,
+            tokens: [],
+            temperature: 0,
+            avg_logprob: 0,
+            compression_ratio: 0,
+            no_speech_prob: 0
+          }
+        ]
+      } as unknown as WhisperResult
+
+      expect(() => formatter.formatAsSrt(incompleteResult)).not.toThrow()
+      expect(() => formatter.formatAsVtt(incompleteResult)).not.toThrow()
+    })
+
+    it('should support whisper.cpp transcription array output', () => {
+      const whisperCppResult = {
+        transcription: [
+          {
+            text: 'Hello',
+            offsets: { from: 0, to: 1250 }
+          },
+          {
+            text: 'world',
+            offsets: { from: 1250, to: 2500 }
+          }
+        ]
+      } as unknown as WhisperResult
+
+      expect(formatter.formatAsTxt(whisperCppResult)).toBe('Hello world')
+      expect(formatter.formatAsSrt(whisperCppResult)).toContain('Hello')
+      expect(formatter.formatAsSrt(whisperCppResult)).toContain('00:00:00,000 --> 00:00:01,250')
+      expect(formatter.formatAsVtt(whisperCppResult)).toContain('Hello')
+      expect(formatter.formatAsVtt(whisperCppResult)).toContain('00:00:00.000 --> 00:00:01.250')
+    })
   })
 
   describe('Text Normalization', () => {
@@ -303,6 +358,73 @@ describe('OutputFormatter', () => {
       expect(result).toContain('Too')
       expect(result).toContain('much')
       expect(result).toContain('spaces')
+    })
+
+    it('should reconstruct text when top-level text is missing', () => {
+      const missingTextResult = {
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0,
+            end: 1,
+            text: 'Hello',
+            tokens: [],
+            temperature: 0,
+            avg_logprob: 0,
+            compression_ratio: 0,
+            no_speech_prob: 0
+          },
+          {
+            id: 1,
+            seek: 0,
+            start: 1,
+            end: 2,
+            text: 'world',
+            tokens: [],
+            temperature: 0,
+            avg_logprob: 0,
+            compression_ratio: 0,
+            no_speech_prob: 0
+          }
+        ]
+      } as unknown as WhisperResult
+
+      expect(formatter.formatAsTxt(missingTextResult)).toBe('Hello world')
+    })
+
+    it('should reconstruct text when top-level text is blank', () => {
+      const blankTextResult = {
+        text: '   ',
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0,
+            end: 1,
+            text: 'Hello',
+            tokens: [],
+            temperature: 0,
+            avg_logprob: 0,
+            compression_ratio: 0,
+            no_speech_prob: 0
+          },
+          {
+            id: 1,
+            seek: 0,
+            start: 1,
+            end: 2,
+            text: 'world',
+            tokens: [],
+            temperature: 0,
+            avg_logprob: 0,
+            compression_ratio: 0,
+            no_speech_prob: 0
+          }
+        ]
+      } as unknown as WhisperResult
+
+      expect(formatter.formatAsTxt(blankTextResult)).toBe('Hello world')
     })
 
     it('should preserve line breaks in subtitle formats', () => {

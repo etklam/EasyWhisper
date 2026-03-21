@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: SettingsSchema = {
   whisperLanguage: 'auto',
   whisperUseMetal: true,
   outputDir: '',
+  outputToSourceDir: false,
   outputFormats: ['txt', 'srt'],
   maxTranscribeConcurrency: 1,
   maxAiConcurrency: 2,

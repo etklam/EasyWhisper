@@ -38,6 +38,7 @@ describe('Settings IPC', () => {
       language: 'auto',
       useMetal: true,
       outputDir: '',
+      outputToSourceDir: false,
       outputFormats: ['txt', 'srt'],
       ytdlpAudioFormat: 'mp3',
       ytdlpCookiesPath: '',

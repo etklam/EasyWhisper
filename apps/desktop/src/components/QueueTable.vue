@@ -31,6 +31,7 @@ const activeCount = computed(() =>
 )
 const doneCount = computed(() => queueStore.items.filter((item) => item.status === 'done').length)
 const errorCount = computed(() => queueStore.items.filter((item) => item.status === 'error').length)
+
 </script>
 
 <style scoped>
@@ -49,4 +50,5 @@ const errorCount = computed(() => queueStore.items.filter((item) => item.status 
   display: grid;
   gap: 12px;
 }
+
 </style>

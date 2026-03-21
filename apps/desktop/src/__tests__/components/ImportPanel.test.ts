@@ -8,6 +8,7 @@ import ImportPanel from '@/components/ImportPanel.vue'
 import i18n from '@/i18n'
 import { naive } from '@/plugins/naive'
 import { useQueueStore } from '@/stores/queue'
+import { useWhisperStore } from '@/stores/whisper'
 
 function createMockFile(path: string): File {
   const filename = path.split('/').pop() ?? 'file'
@@ -26,6 +27,8 @@ describe('ImportPanel', () => {
 
   it('enqueues only supported files when dragging valid and invalid files', async () => {
     const queueStore = useQueueStore()
+    const whisperStore = useWhisperStore()
+    whisperStore.settings.outputToSourceDir = false
     const enqueueFilesSpy = vi.spyOn(queueStore, 'enqueueFiles').mockImplementation(() => {})
 
     const wrapper = mount(
@@ -50,7 +53,34 @@ describe('ImportPanel', () => {
     })
 
     expect(enqueueFilesSpy).toHaveBeenCalledTimes(1)
-    expect(enqueueFilesSpy).toHaveBeenCalledWith(['/tmp/audio.mp3'])
+    expect(enqueueFilesSpy).toHaveBeenCalledWith(['/tmp/audio.mp3'], { outputLocation: 'default' })
+  })
+
+  it('uses the selected file output location when enqueuing files', async () => {
+    const queueStore = useQueueStore()
+    const whisperStore = useWhisperStore()
+    whisperStore.settings.outputToSourceDir = true
+    const enqueueFilesSpy = vi.spyOn(queueStore, 'enqueueFiles').mockImplementation(() => {})
+
+    const wrapper = mount(
+      defineComponent({
+        components: { ImportPanel, NMessageProvider },
+        template: '<n-message-provider><ImportPanel /></n-message-provider>'
+      }),
+      {
+        global: {
+          plugins: [naive, i18n]
+        }
+      }
+    )
+
+    await wrapper.find('.drop-target').trigger('drop', {
+      dataTransfer: {
+        files: [createMockFile('/tmp/audio.mp3')]
+      }
+    })
+
+    expect(enqueueFilesSpy).toHaveBeenCalledWith(['/tmp/audio.mp3'], { outputLocation: 'source' })
   })
 
   it('enqueues parsed URLs when submitting URL input', async () => {

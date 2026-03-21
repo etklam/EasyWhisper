@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { YtDlpDownloader, parseUrlList } from '../YtDlpDownloader'
 import { spawn } from 'child_process'
-import { readFile, unlink } from 'node:fs/promises'
+import { access, mkdir, readFile, rename, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 
@@ -21,6 +21,9 @@ describe('YtDlpDownloader', () => {
     vi.clearAllMocks()
 
     vi.mocked(randomUUID).mockReturnValue('test-uuid-123')
+    vi.mocked(mkdir).mockResolvedValue(undefined as never)
+    vi.mocked(access).mockRejectedValue(new Error('missing'))
+    vi.mocked(rename).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -85,8 +88,11 @@ https://youtu.be/456`
       const url = 'https://youtube.com/watch?v=123'
       const outputPath = '/tmp/ytdlp/Video Title.mp3'
       const pathFile = path.join(mockTmpDir, `ytdlp-path-test-uuid-123.txt`)
+      const titleFile = path.join(mockTmpDir, `ytdlp-title-test-uuid-123.txt`)
 
-      vi.mocked(readFile).mockResolvedValue(outputPath)
+      vi.mocked(readFile)
+        .mockResolvedValueOnce(outputPath)
+        .mockResolvedValueOnce('Video Title')
 
       const mockSpawn = vi.mocked(spawn).mockReturnValue({
         stderr: { on: vi.fn() },
@@ -117,12 +123,14 @@ https://youtu.be/456`
           '--audio-quality', '0',
           '--no-playlist',
           '-o', expect.any(String),
+          '--print-to-file', '%(title)s', titleFile,
           '--print-to-file', 'after_move:filepath', pathFile,
           '--newline'
         ])
       )
 
       expect(onProgress).toHaveBeenCalledWith(50.0)
+      expect(rename).not.toHaveBeenCalled()
     })
 
     it('should use custom audio format', async () => {
@@ -130,7 +138,9 @@ https://youtu.be/456`
       const outputPath = '/tmp/ytdlp/Video Title.wav'
       const pathFile = path.join(mockTmpDir, `ytdlp-path-test-uuid-123.txt`)
 
-      vi.mocked(readFile).mockResolvedValue(outputPath)
+      vi.mocked(readFile)
+        .mockResolvedValueOnce(outputPath)
+        .mockResolvedValueOnce('Video Title')
 
       vi.mocked(spawn).mockReturnValue({
         stderr: { on: vi.fn() },
@@ -156,7 +166,9 @@ https://youtu.be/456`
       const url = 'https://youtube.com/watch?v=123'
       const cookiesPath = '/path/to/cookies.txt'
 
-      vi.mocked(readFile).mockResolvedValue('/tmp/ytdlp/Video Title.mp3')
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
+        .mockResolvedValueOnce('Video Title')
 
       vi.mocked(spawn).mockReturnValue({
         stderr: { on: vi.fn() },
@@ -178,10 +190,68 @@ https://youtu.be/456`
       )
     })
 
+    it('should pass ffmpeg location as the containing directory', async () => {
+      const url = 'https://youtube.com/watch?v=123'
+
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
+        .mockResolvedValueOnce('Video Title')
+
+      vi.mocked(spawn).mockReturnValue({
+        stderr: { on: vi.fn() },
+        stdout: { on: vi.fn() },
+        on: vi.fn((_event, handler) => {
+          if (_event === 'close') {
+            handler(0)
+          }
+        })
+      } as any)
+
+      await downloader.downloadAudio('task-123', url, { ffmpegPath: '/opt/homebrew/bin/ffmpeg' })
+
+      expect(spawn).toHaveBeenCalledWith(
+        mockYtDlpPath,
+        expect.arrayContaining([
+          '--ffmpeg-location', '/opt/homebrew/bin'
+        ])
+      )
+    })
+
+    it('should pass discovered JS runtimes to yt-dlp', async () => {
+      const url = 'https://youtube.com/watch?v=123'
+
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
+        .mockResolvedValueOnce('Video Title')
+
+      vi.mocked(spawn).mockReturnValue({
+        stderr: { on: vi.fn() },
+        stdout: { on: vi.fn() },
+        on: vi.fn((_event, handler) => {
+          if (_event === 'close') {
+            handler(0)
+          }
+        })
+      } as any)
+
+      await downloader.downloadAudio('task-123', url, {
+        jsRuntimes: ['node:/opt/homebrew/bin/node', 'bun:/opt/homebrew/bin/bun']
+      })
+
+      expect(spawn).toHaveBeenCalledWith(
+        mockYtDlpPath,
+        expect.arrayContaining([
+          '--js-runtimes', 'node:/opt/homebrew/bin/node,bun:/opt/homebrew/bin/bun'
+        ])
+      )
+    })
+
     it('should parse download progress from stdout', async () => {
       const url = 'https://youtube.com/watch?v=123'
 
-      vi.mocked(readFile).mockResolvedValue('/tmp/ytdlp/Video Title.mp3')
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
+        .mockResolvedValueOnce('Video Title')
 
       const progressUpdates: number[] = []
       const onProgress = vi.fn((progress) => progressUpdates.push(progress))
@@ -258,8 +328,11 @@ https://youtu.be/456`
     it('should clean up temporary path file', async () => {
       const url = 'https://youtube.com/watch?v=123'
       const pathFile = path.join(mockTmpDir, `ytdlp-path-test-uuid-123.txt`)
+      const titleFile = path.join(mockTmpDir, `ytdlp-title-test-uuid-123.txt`)
 
-      vi.mocked(readFile).mockResolvedValue('/tmp/ytdlp/Video Title.mp3')
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
+        .mockResolvedValueOnce('Video Title')
 
       vi.mocked(spawn).mockReturnValue({
         stderr: { on: vi.fn() },
@@ -274,6 +347,7 @@ https://youtu.be/456`
       await downloader.downloadAudio('task-123', url)
 
       expect(unlink).toHaveBeenCalledWith(pathFile)
+      expect(unlink).toHaveBeenCalledWith(titleFile)
     })
   })
 
@@ -281,7 +355,9 @@ https://youtu.be/456`
     it('should emit progress events', async () => {
       const url = 'https://youtube.com/watch?v=123'
 
-      vi.mocked(readFile).mockResolvedValue('/tmp/ytdlp/Video Title.mp3')
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
+        .mockResolvedValueOnce('Video Title')
 
       const onProgress = vi.fn()
 
@@ -309,7 +385,9 @@ https://youtu.be/456`
     it('should parse percentage from various formats', async () => {
       const url = 'https://youtube.com/watch?v=123'
 
-      vi.mocked(readFile).mockResolvedValue('/tmp/ytdlp/Video Title.mp3')
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('Video Title')
+        .mockResolvedValueOnce('/tmp/ytdlp/Video Title.mp3')
 
       const progressUpdates: number[] = []
       const onProgress = vi.fn((p) => progressUpdates.push(p))
@@ -390,7 +468,9 @@ https://youtu.be/456`
     it('should extract video title from yt-dlp output', async () => {
       const url = 'https://youtube.com/watch?v=123'
 
-      vi.mocked(readFile).mockResolvedValue('/tmp/ytdlp/My Video Title.mp3')
+      vi.mocked(readFile)
+        .mockResolvedValueOnce('/tmp/ytdlp/garbled.mp3')
+        .mockResolvedValueOnce('My Video Title')
 
       vi.mocked(spawn).mockReturnValue({
         stderr: { on: vi.fn() },
@@ -406,6 +486,7 @@ https://youtu.be/456`
 
       const title = path.basename(outputPath, '.mp3')
       expect(title).toBe('My Video Title')
+      expect(rename).toHaveBeenCalledWith('/tmp/ytdlp/garbled.mp3', '/tmp/ytdlp/My Video Title.mp3')
     })
   })
 })

@@ -74,6 +74,21 @@ describe('WhisperMac', () => {
     expect(onProgress).toHaveBeenCalled()
   })
 
+  it('uses the provided output file stem for result naming', async () => {
+    vi.unstubAllEnvs()
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
+
+    const result = await whisperMac.transcribe({
+      taskId: 'task-123',
+      audioPath: '/path/to/audio.mp3',
+      modelPath,
+      outputFileStem: 'Video Title',
+      onProgress: vi.fn()
+    })
+
+    expect(result.outputPath).toBe(path.join(tempRoot, 'outputs', 'Video Title.json'))
+  })
+
   it('should handle transcribe with Metal disabled', async () => {
     vi.unstubAllEnvs()
     const whisperMac = new WhisperMac({ projectRoot: tempRoot })
@@ -91,16 +106,43 @@ describe('WhisperMac', () => {
     expect(onProgress).toHaveBeenCalled()
   })
 
+  it('reads text from whisper.cpp transcription arrays', async () => {
+    vi.unstubAllEnvs()
+    const whisperMac = new WhisperMac({ projectRoot: tempRoot })
+    await mkdir(path.join(tempRoot, 'outputs'), { recursive: true })
+
+    await writeFile(
+      path.join(tempRoot, 'outputs', 'task-456.json'),
+      JSON.stringify({
+        transcription: [
+          { text: 'Hello', offsets: { from: 0, to: 1000 } },
+          { text: 'world', offsets: { from: 1000, to: 2000 } }
+        ]
+      }),
+      'utf8'
+    )
+
+    const text = await (whisperMac as unknown as { readTranscriptionText: (outputPath: string) => Promise<string> })
+      .readTranscriptionText(path.join(tempRoot, 'outputs', 'task-456.json'))
+
+    expect(text).toBe('Hello world')
+  })
+
   it('should list supported models from the managed models directory', async () => {
     const whisperMac = new WhisperMac({ projectRoot: tempRoot })
 
     const models = await whisperMac.listModels()
 
-    expect(models).toHaveLength(4)
+    expect(models).toHaveLength(5)
     expect(models.find((model) => model.id === 'ggml-base.bin')).toEqual(
       expect.objectContaining({
         downloaded: true,
         path: modelPath
+      })
+    )
+    expect(models.find((model) => model.id === 'ggml-large-v2.bin')).toEqual(
+      expect.objectContaining({
+        downloaded: false
       })
     )
     expect(models.find((model) => model.id === 'ggml-small.bin')).toEqual(

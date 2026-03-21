@@ -26,6 +26,23 @@
         />
       </div>
 
+      <div class="file-options">
+        <n-form-item
+          :label="t('components.importPanel.outputLocation')"
+          label-placement="top"
+          class="output-location-field"
+        >
+          <n-select
+            v-model:value="fileOutputLocation"
+            data-testid="file-output-location-select"
+            :options="fileOutputLocationOptions"
+          />
+        </n-form-item>
+        <n-text depth="3">
+          {{ t('components.importPanel.outputLocationHint') }}
+        </n-text>
+      </div>
+
       <n-divider />
 
       <!-- URL Batch Input -->
@@ -58,20 +75,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
 import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_VIDEO_FORMATS } from '@shared/formats'
 import { parseUrlList } from '@shared/url'
 import { useQueueStore } from '@/stores/queue'
+import { useWhisperStore } from '@/stores/whisper'
+import type { TaskOutputLocation } from '@/stores/queue'
 
 const { t } = useI18n()
 const queueStore = useQueueStore()
+const whisperStore = useWhisperStore()
 const message = useMessage()
 const inputRef = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 const rawUrlValue = ref('')
+const fileOutputLocation = ref<TaskOutputLocation>(
+  whisperStore.settings.outputToSourceDir ? 'source' : 'default'
+)
 
 const acceptedFormats = [...SUPPORTED_AUDIO_FORMATS, ...SUPPORTED_VIDEO_FORMATS].filter((format) =>
   ['mp3', 'wav', 'm4a', 'mp4', 'mov', 'mkv'].includes(format)
@@ -80,6 +103,17 @@ const acceptedInput = acceptedFormats.map((format) => `.${format}`).join(',')
 const acceptedLabel = acceptedInput.replaceAll(',', ' ')
 
 const parsedUrls = computed(() => parseUrlList(rawUrlValue.value))
+const fileOutputLocationOptions = computed(() => [
+  { label: t('components.importPanel.outputLocationDefault'), value: 'default' },
+  { label: t('components.importPanel.outputLocationSource'), value: 'source' }
+])
+
+watch(
+  () => whisperStore.settings.outputToSourceDir,
+  (next) => {
+    fileOutputLocation.value = next ? 'source' : 'default'
+  }
+)
 
 function openFilePicker() {
   inputRef.value?.click()
@@ -129,7 +163,7 @@ function queueFiles(filePaths: string[]) {
     return
   }
 
-  queueStore.enqueueFiles(validFiles)
+  queueStore.enqueueFiles(validFiles, { outputLocation: fileOutputLocation.value })
   message.success(t('messages.filesAdded', { count: validFiles.length }))
 }
 
@@ -196,6 +230,15 @@ function submitUrls() {
 }
 
 .hidden-input {
+  display: none;
+}
+
+.file-options {
+  display: grid;
+  gap: 8px;
+}
+
+.output-location-field :deep(.n-form-item-feedback-wrapper) {
   display: none;
 }
 

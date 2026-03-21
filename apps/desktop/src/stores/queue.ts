@@ -11,11 +11,15 @@ import { useWhisperStore } from './whisper'
 
 export type QueueSource = 'file' | 'ytdlp'
 export type QueueStatus = 'pending' | 'downloading' | 'converting' | 'transcribing' | 'ai' | 'done' | 'error'
+export type TaskOutputLocation = 'default' | 'source'
 
 export interface QueueTask {
   id: string
   source: QueueSource
   filePath?: string
+  sourcePath?: string
+  outputLocation?: TaskOutputLocation
+  outputFileStem?: string
   url?: string
   title: string
   status: QueueStatus
@@ -36,11 +40,18 @@ export interface QueueTask {
 
 const MAX_CONCURRENT_TASKS = 1
 
-function createTask(input: { source: QueueSource; filePath?: string; url?: string }): QueueTask {
+function createTask(input: {
+  source: QueueSource
+  filePath?: string
+  outputLocation?: TaskOutputLocation
+  url?: string
+}): QueueTask {
   return {
     id: crypto.randomUUID(),
     source: input.source,
     filePath: input.filePath,
+    sourcePath: input.filePath,
+    outputLocation: input.outputLocation,
     url: input.url,
     title: input.filePath ? getBaseName(input.filePath) : input.url ?? '未命名任务',
     status: 'pending',
@@ -154,6 +165,7 @@ export const useQueueStore = defineStore('queue', {
           }
 
           item.filePath = event.outputPath
+          item.outputFileStem = getFileStem(event.outputPath)
           item.downloadProgress = 100
           item.message = 'queue.messages.downloadComplete'
           item.messageParams = undefined
@@ -198,10 +210,17 @@ export const useQueueStore = defineStore('queue', {
       this.listenersBound = true
     },
 
-    enqueueFiles(filePaths: string[]) {
+    enqueueFiles(filePaths: string[], options?: { outputLocation?: TaskOutputLocation }) {
       this.registerCoordinator()
+      const defaultOutputLocation = this.getSettings().outputToSourceDir ? 'source' : 'default'
       for (const filePath of filePaths) {
-        this.items.unshift(createTask({ source: 'file', filePath }))
+        this.items.unshift(
+          createTask({
+            source: 'file',
+            filePath,
+            outputLocation: options?.outputLocation ?? defaultOutputLocation
+          })
+        )
       }
       this.pumpQueue()
     },
@@ -273,6 +292,8 @@ export const useQueueStore = defineStore('queue', {
       item.downloadProgress = 0
       item.transcribeProgress = 0
       item.outputPath = undefined
+      item.filePath = item.source === 'file' ? item.sourcePath : item.filePath
+      item.outputFileStem = undefined
       item.transcript = undefined
       item.error = undefined
       item.message = undefined
@@ -370,6 +391,7 @@ export const useQueueStore = defineStore('queue', {
       }
 
       const settings = this.getSettings()
+      const resolvedOutputDir = this.resolveOutputDirForTask(item, settings)
       item.status = 'transcribing'
       item.message = item.source === 'ytdlp'
         ? 'queue.messages.startTranscribingDownload'
@@ -384,7 +406,8 @@ export const useQueueStore = defineStore('queue', {
           language: settings.language,
           threads: settings.threads,
           useMetal: settings.useMetal,
-          outputDir: settings.outputDir || undefined
+          outputDir: resolvedOutputDir,
+          outputFileStem: item.outputFileStem ?? getFileStem(item.sourcePath ?? item.filePath)
         })
       } catch (error) {
         item.status = 'error'
@@ -418,6 +441,7 @@ export const useQueueStore = defineStore('queue', {
         }
 
         item.filePath = result.outputPath
+        item.outputFileStem = item.outputFileStem ?? getFileStem(inputPath)
         item.downloadProgress = 100
         item.message = 'queue.messages.conversionComplete'
         item.messageParams = undefined
@@ -560,7 +584,26 @@ export const useQueueStore = defineStore('queue', {
     },
 
     getSettings(): WorkflowSettings {
-      return useWhisperStore().settings
+      const whisperStore = useWhisperStore()
+      return {
+        ...whisperStore.settings,
+        language: whisperStore.getEffectiveLanguage()
+      }
+    },
+
+    resolveOutputDirForTask(item: QueueTask, settings: WorkflowSettings): string | undefined {
+      const useSourceDir = item.outputLocation
+        ? item.outputLocation === 'source'
+        : settings.outputToSourceDir
+
+      if (useSourceDir && item.sourcePath) {
+        const dirPath = getDirectoryPath(item.sourcePath)
+        if (dirPath) {
+          return dirPath
+        }
+      }
+
+      return settings.outputDir || undefined
     },
 
     shouldRunAi(): boolean {
@@ -593,4 +636,22 @@ function toErrorMessage(error: unknown): string {
 
 function getBaseName(filePath: string): string {
   return filePath.split(/[/\\]/).filter(Boolean).pop() ?? filePath
+}
+
+function getFileStem(filePath: string): string {
+  const baseName = getBaseName(filePath)
+  const extensionIndex = baseName.lastIndexOf('.')
+  if (extensionIndex <= 0) {
+    return baseName
+  }
+  return baseName.slice(0, extensionIndex)
+}
+
+function getDirectoryPath(filePath: string): string | undefined {
+  const lastSeparatorIndex = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'))
+  if (lastSeparatorIndex <= 0) {
+    return undefined
+  }
+
+  return filePath.slice(0, lastSeparatorIndex)
 }
