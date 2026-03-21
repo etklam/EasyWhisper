@@ -28,6 +28,7 @@ export class AiPipeline {
   public readonly options: ResolvedPipelineOptions
 
   private activeCount = 0
+  private readonly slotWaiters: Array<() => void> = []
 
   constructor(
     public readonly model: string,
@@ -61,8 +62,7 @@ export class AiPipeline {
       return
     }
 
-    await this.waitForSlot()
-    this.activeCount += 1
+    await this.acquireSlot(task.signal)
 
     try {
       const result = await this.processTask(task)
@@ -70,7 +70,7 @@ export class AiPipeline {
     } catch (error) {
       task.onResult?.(toAiError(task, error))
     } finally {
-      this.activeCount = Math.max(0, this.activeCount - 1)
+      this.releaseSlot()
     }
   }
 
@@ -88,10 +88,46 @@ export class AiPipeline {
     }
   }
 
-  private async waitForSlot(): Promise<void> {
-    while (this.activeCount >= this.options.concurrency) {
-      await delay(100)
+  private async acquireSlot(signal?: AbortSignal): Promise<void> {
+    if (this.activeCount < this.options.concurrency) {
+      this.activeCount += 1
+      return
     }
+
+    await new Promise<void>((resolve, reject) => {
+      const waiter = () => {
+        cleanup()
+        this.activeCount += 1
+        resolve()
+      }
+
+      const onAbort = () => {
+        const waiterIndex = this.slotWaiters.indexOf(waiter)
+        if (waiterIndex >= 0) {
+          this.slotWaiters.splice(waiterIndex, 1)
+        }
+        cleanup()
+        reject(normalizeAbortError(signal?.reason, true))
+      }
+
+      const cleanup = () => {
+        signal?.removeEventListener('abort', onAbort)
+      }
+
+      if (signal?.aborted) {
+        onAbort()
+        return
+      }
+
+      signal?.addEventListener('abort', onAbort, { once: true })
+      this.slotWaiters.push(waiter)
+    })
+  }
+
+  private releaseSlot(): void {
+    this.activeCount = Math.max(0, this.activeCount - 1)
+    const nextWaiter = this.slotWaiters.shift()
+    nextWaiter?.()
   }
 
   private async processTask(task: AiTask): Promise<AiRunResult> {
@@ -312,7 +348,9 @@ export class AiPipeline {
   ): Promise<T> {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
     const timeoutController = new AbortController()
-    const signal = mergeAbortSignals(upstreamSignal, timeoutController.signal)
+    const signal = upstreamSignal
+      ? mergeAbortSignals(upstreamSignal, timeoutController.signal)
+      : timeoutController.signal
 
     try {
       const timeoutPromise = new Promise<T>((_, reject) => {
@@ -335,12 +373,6 @@ export class AiPipeline {
       }
     }
   }
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }
 
 function mergeAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal {

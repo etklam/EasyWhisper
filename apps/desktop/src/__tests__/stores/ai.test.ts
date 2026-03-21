@@ -328,4 +328,51 @@ describe('ai store', () => {
       expect(summaryCall![0].text).toBe(mockResults['task-translate'])
     })
   })
+
+  describe('Workflow retention', () => {
+    it('retains active workflows while trimming older terminal workflows', () => {
+      const aiStore = useAiStore()
+
+      aiStore.workflows = Array.from({ length: 105 }, (_, index) => ({
+        id: `done-${index}`,
+        queueTaskId: `queue-done-${index}`,
+        title: `Done ${index}`,
+        sourceText: 'source',
+        currentText: 'current',
+        model: 'llama2',
+        targetLang: 'en',
+        steps: [],
+        results: {},
+        status: 'done' as const,
+        progress: 100,
+        cancelRequested: false,
+        createdAt: new Date().toISOString(),
+        completedAt: new Date().toISOString()
+      }))
+
+      aiStore.workflows.push({
+        id: 'running-1',
+        queueTaskId: 'queue-running-1',
+        title: 'Running',
+        sourceText: 'source',
+        currentText: 'current',
+        model: 'llama2',
+        targetLang: 'en',
+        steps: [],
+        results: {},
+        status: 'running',
+        progress: 50,
+        cancelRequested: false,
+        createdAt: new Date().toISOString(),
+        startedAt: new Date().toISOString()
+      })
+
+      aiStore.trimRetainedWorkflows()
+
+      expect(aiStore.workflows).toHaveLength(101)
+      expect(aiStore.workflows.filter((workflow) => workflow.status === 'done')).toHaveLength(100)
+      expect(aiStore.workflows.some((workflow) => workflow.id === 'running-1')).toBe(true)
+      expect(aiStore.workflows.some((workflow) => workflow.id === 'done-104')).toBe(false)
+    })
+  })
 })

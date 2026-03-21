@@ -3,3 +3,4 @@
 export * from './string'
 export * from './file'
 export * from './timecode'
+export * from './detectionCache'

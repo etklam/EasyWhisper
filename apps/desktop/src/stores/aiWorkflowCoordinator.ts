@@ -4,7 +4,7 @@ interface EnqueueWorkflowInput {
   queueTaskId: string
   title: string
   text: string
-  settings?: WorkflowSettings
+  settings: WorkflowSettings
 }
 
 interface QueueBridge {

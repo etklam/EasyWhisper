@@ -16,6 +16,7 @@ import type {
   OutputFormat,
   OutputFormatPayload,
   OutputFormatResponse,
+  ToolDetectPayload,
   ToolOperationResponse,
   ToolProgressEvent,
   WorkflowSettings,
@@ -72,16 +73,18 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DOWNLOAD_MANAGED, payload),
   updateManagedYtDlp: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<YtDlpInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.YTDLP_UPDATE_MANAGED, payload),
-  detectManagedYtDlp: (): Promise<YtDlpInstallation> =>
-    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT_MANAGED),
+  detectManagedYtDlp: (payload?: ToolDetectPayload): Promise<YtDlpInstallation> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT_MANAGED, payload),
   downloadManagedFfmpeg: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DOWNLOAD_MANAGED, payload),
   updateManagedFfmpeg: (payload?: { signal?: AbortSignal }): Promise<ToolOperationResponse<FfmpegInstallation>> =>
     ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_UPDATE_MANAGED, payload),
-  detectManagedFfmpeg: (): Promise<FfmpegInstallation> =>
-    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT_MANAGED),
-  detectSystemYtDlp: (): Promise<YtDlpInstallation> => ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT),
-  detectSystemFfmpeg: (): Promise<FfmpegInstallation> => ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT),
+  detectManagedFfmpeg: (payload?: ToolDetectPayload): Promise<FfmpegInstallation> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT_MANAGED, payload),
+  detectSystemYtDlp: (payload?: ToolDetectPayload): Promise<YtDlpInstallation> =>
+    ipcRenderer.invoke(IPC_CHANNELS.YTDLP_DETECT, payload),
+  detectSystemFfmpeg: (payload?: ToolDetectPayload): Promise<FfmpegInstallation> =>
+    ipcRenderer.invoke(IPC_CHANNELS.FFMPEG_DETECT, payload),
   onWhisperProgress: (listener: (event: WhisperProgressEvent) => void): Unsubscribe =>
     bindRendererListener(IPC_CHANNELS.WHISPER_PROGRESS, listener),
   onWhisperComplete: (listener: (event: WhisperCompleteEvent) => void): Unsubscribe =>

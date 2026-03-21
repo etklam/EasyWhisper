@@ -44,7 +44,7 @@
           {{ t('settings.ffmpeg.systemModeHint') }}
         </n-alert>
 
-        <n-button @click="detectSystem" :loading="detecting">
+        <n-button @click="refreshSystem" :loading="detecting">
           {{ t('settings.ffmpeg.refresh') }}
         </n-button>
       </template>
@@ -100,7 +100,7 @@
           >
             {{ t('common.cancel') }}
           </n-button>
-          <n-button @click="detectManaged" :loading="detecting">
+          <n-button @click="refreshManaged" :loading="detecting">
             {{ t('settings.ffmpeg.refresh') }}
           </n-button>
         </n-space>
@@ -187,10 +187,10 @@ function onModeChange(newMode: 'system' | 'managed') {
 }
 
 // 檢測系統 ffmpeg
-async function detectSystem() {
+async function detectSystem(options: { forceRefresh?: boolean } = {}) {
   detecting.value = true
   try {
-    const result = await window.fosswhisper.detectSystemFfmpeg()
+    const result = await window.fosswhisper.detectSystemFfmpeg(options)
     systemInstallation.value = result
   } catch (error) {
     console.error('Failed to detect system ffmpeg:', error)
@@ -200,10 +200,10 @@ async function detectSystem() {
 }
 
 // 檢測管理版本
-async function detectManaged() {
+async function detectManaged(options: { forceRefresh?: boolean } = {}) {
   detecting.value = true
   try {
-    const result = await window.fosswhisper.detectManagedFfmpeg()
+    const result = await window.fosswhisper.detectManagedFfmpeg(options)
     managedInstallation.value = result
   } catch (error) {
     console.error('Failed to detect managed ffmpeg:', error)
@@ -226,7 +226,7 @@ async function download() {
     if (response.installation) {
       managedInstallation.value = response.installation
     }
-    await detectManaged()
+    await detectManaged({ forceRefresh: true })
   } catch (error) {
     console.error('Failed to download ffmpeg:', error)
     throw error
@@ -250,7 +250,7 @@ async function update() {
     if (response.installation) {
       managedInstallation.value = response.installation
     }
-    await detectManaged()
+    await detectManaged({ forceRefresh: true })
   } catch (error) {
     console.error('Failed to update ffmpeg:', error)
     throw error
@@ -264,6 +264,14 @@ async function update() {
 function cancelDownload() {
   abortController?.abort()
   downloading.value = false
+}
+
+function refreshSystem() {
+  void detectSystem({ forceRefresh: true })
+}
+
+function refreshManaged() {
+  void detectManaged({ forceRefresh: true })
 }
 
 // 開啟資料夾

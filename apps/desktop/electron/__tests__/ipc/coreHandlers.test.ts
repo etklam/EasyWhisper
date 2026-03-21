@@ -139,9 +139,12 @@ describe('Core IPC handlers', () => {
   })
 
   it('registers and runs ytdlp handlers', async () => {
-    downloadAudioMock.mockImplementation(async (_taskId, _url, options) => {
+    let resolveDownload: ((value: string) => void) | undefined
+    downloadAudioMock.mockImplementation((_taskId, _url, options) => {
       options.onProgress?.(42)
-      return '/tmp/audio.mp3'
+      return new Promise<string>((resolve) => {
+        resolveDownload = resolve
+      })
     })
     cancelDownloadMock.mockReturnValue(true)
 
@@ -157,14 +160,19 @@ describe('Core IPC handlers', () => {
       taskId: result.taskId,
       progress: 42
     })
-    expect(mainWindow.webContents.send).toHaveBeenCalledWith('ytdlp:complete', {
-      taskId: result.taskId,
-      outputPath: '/tmp/audio.mp3'
-    })
 
     await expect(cancelHandler({}, { taskId: result.taskId })).resolves.toEqual({
       taskId: result.taskId,
-      cancelled: false
+      cancelled: true
+    })
+
+    resolveDownload?.('/tmp/audio.mp3')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(mainWindow.webContents.send).toHaveBeenCalledWith('ytdlp:complete', {
+      taskId: result.taskId,
+      outputPath: '/tmp/audio.mp3'
     })
   })
 

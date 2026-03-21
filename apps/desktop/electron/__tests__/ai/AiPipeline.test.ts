@@ -172,6 +172,52 @@ describe('AiPipeline', () => {
 
       expect(onResult).toHaveBeenCalledTimes(2)
     })
+
+    it('should release queued work when a slot completes without timer polling', async () => {
+      let resolveBlockingTask: ((value: { response: string }) => void) | undefined
+      const blockingTask = new Promise<{ response: string }>((resolve) => {
+        resolveBlockingTask = resolve
+      })
+      let invocationCount = 0
+
+      mockChat.mockImplementation(() => {
+        invocationCount += 1
+        if (invocationCount === 1) {
+          return blockingTask.promise
+        }
+
+        return Promise.resolve({ response: 'second task complete' })
+      })
+
+      const singleConcurrencyPipeline = new AiPipeline('llama2', {
+        correct: true,
+        translate: true,
+        summary: false
+      }, {
+        concurrency: 1
+      })
+
+      await singleConcurrencyPipeline.init()
+
+      const firstTask = singleConcurrencyPipeline.process({
+        id: 'task-1',
+        text: 'Text 1',
+        taskType: 'correct'
+      })
+      const secondTask = singleConcurrencyPipeline.process({
+        id: 'task-2',
+        text: 'Text 2',
+        taskType: 'correct'
+      })
+
+      await Promise.resolve()
+      expect(mockChat).toHaveBeenCalledTimes(1)
+
+      resolveBlockingTask?.({ response: 'first task complete' })
+
+      await Promise.all([firstTask, secondTask])
+      expect(mockChat).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('Chunking Strategy', () => {

@@ -193,6 +193,10 @@ export interface YtDlpStartResponse {
   accepted: true
 }
 
+export interface ToolDetectPayload {
+  forceRefresh?: boolean
+}
+
 export interface YtDlpCancelPayload {
   taskId: string
 }

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 import type { AiTaskType, WorkflowSettings } from '@shared/types'
+import { getEnabledAiTasks, normalizeProgress, toErrorMessage } from '@shared/workflow'
 import {
   cancelAiWorkflow,
   clearAiWorkflow,
@@ -39,6 +40,7 @@ export interface QueueTask {
 }
 
 const MAX_CONCURRENT_TASKS = 1
+const MAX_RETAINED_TERMINAL_TASKS = 100
 
 function createTask(input: {
   source: QueueSource
@@ -64,13 +66,6 @@ function createTask(input: {
   }
 }
 
-function clampProgress(value: number): number {
-  if (value <= 1) {
-    return Math.max(0, Math.min(100, Math.round(value * 100)))
-  }
-  return Math.max(0, Math.min(100, Math.round(value)))
-}
-
 function isActiveStatus(status: QueueStatus): boolean {
   return status === 'downloading' || status === 'converting' || status === 'transcribing'
 }
@@ -89,6 +84,27 @@ export const useQueueStore = defineStore('queue', {
   getters: {
     activeCount(state): number {
       return state.items.filter((item) => isActiveStatus(item.status) && !item.cancelRequested).length
+    },
+    summary(state): { total: number; active: number; done: number; error: number } {
+      return state.items.reduce(
+        (summary, item) => {
+          summary.total += 1
+          if (item.status === 'done') {
+            summary.done += 1
+          } else if (item.status === 'error') {
+            summary.error += 1
+          } else if (
+            item.status === 'downloading' ||
+            item.status === 'converting' ||
+            item.status === 'transcribing' ||
+            item.status === 'ai'
+          ) {
+            summary.active += 1
+          }
+          return summary
+        },
+        { total: 0, active: 0, done: 0, error: 0 }
+      )
     }
   },
   actions: {
@@ -115,7 +131,7 @@ export const useQueueStore = defineStore('queue', {
           }
 
           item.status = 'transcribing'
-          item.transcribeProgress = clampProgress(event.progress)
+          item.transcribeProgress = normalizeProgress(event.progress)
           item.message = event.message ?? 'queue.messages.transcribing'
           item.messageParams = undefined
         })
@@ -138,6 +154,7 @@ export const useQueueStore = defineStore('queue', {
           item.status = 'error'
           item.error = event.error
           item.message = event.error
+          this.trimRetainedTasks()
           this.pumpQueue()
         })
       )
@@ -150,7 +167,7 @@ export const useQueueStore = defineStore('queue', {
           }
 
           item.status = 'downloading'
-          item.downloadProgress = clampProgress(event.progress)
+          item.downloadProgress = normalizeProgress(event.progress)
           item.message = 'queue.messages.downloading'
           item.messageParams = { progress: item.downloadProgress }
         })
@@ -189,6 +206,7 @@ export const useQueueStore = defineStore('queue', {
           item.status = 'error'
           item.error = event.error
           item.message = event.error
+          this.trimRetainedTasks()
           this.pumpQueue()
         })
       )
@@ -201,7 +219,7 @@ export const useQueueStore = defineStore('queue', {
           }
 
           item.status = 'converting'
-          item.downloadProgress = clampProgress(event.progress)
+          item.downloadProgress = normalizeProgress(event.progress)
           item.message = 'queue.messages.converting'
           item.messageParams = { progress: item.downloadProgress }
         })
@@ -222,6 +240,7 @@ export const useQueueStore = defineStore('queue', {
           })
         )
       }
+      this.trimRetainedTasks()
       this.pumpQueue()
     },
 
@@ -230,6 +249,7 @@ export const useQueueStore = defineStore('queue', {
       for (const url of urls) {
         this.items.unshift(createTask({ source: 'ytdlp', url }))
       }
+      this.trimRetainedTasks()
       this.pumpQueue()
     },
 
@@ -278,6 +298,7 @@ export const useQueueStore = defineStore('queue', {
       item.message = 'queue.messages.cancelled'
       item.messageParams = undefined
       item.aiError = 'queue.messages.cancelled'
+      this.trimRetainedTasks()
       this.pumpQueue()
     },
 
@@ -322,6 +343,10 @@ export const useQueueStore = defineStore('queue', {
       return this.items.find((item) => item.id === id)
     },
 
+    trimRetainedTasks() {
+      this.items = trimTerminalEntries(this.items, MAX_RETAINED_TERMINAL_TASKS)
+    },
+
     pumpQueue() {
       this.registerCoordinator()
       if (this.queuePaused || this.activeCount >= MAX_CONCURRENT_TASKS) {
@@ -346,6 +371,7 @@ export const useQueueStore = defineStore('queue', {
         nextItem.error = 'queue.messages.fileNotFound'
         nextItem.message = nextItem.error
         nextItem.messageParams = undefined
+        this.trimRetainedTasks()
         this.pumpQueue()
         return
       }
@@ -371,6 +397,7 @@ export const useQueueStore = defineStore('queue', {
         item.error = toErrorMessage(error)
         item.message = item.error
         item.messageParams = undefined
+        this.trimRetainedTasks()
         this.pumpQueue()
       }
     },
@@ -386,6 +413,7 @@ export const useQueueStore = defineStore('queue', {
         item.error = 'queue.messages.audioNotFound'
         item.message = item.error
         item.messageParams = undefined
+        this.trimRetainedTasks()
         this.pumpQueue()
         return
       }
@@ -414,6 +442,7 @@ export const useQueueStore = defineStore('queue', {
         item.error = toErrorMessage(error)
         item.message = item.error
         item.messageParams = undefined
+        this.trimRetainedTasks()
         this.pumpQueue()
       }
     },
@@ -456,6 +485,7 @@ export const useQueueStore = defineStore('queue', {
         item.error = toErrorMessage(error)
         item.message = item.error
         item.messageParams = undefined
+        this.trimRetainedTasks()
         this.pumpQueue()
       }
     },
@@ -482,6 +512,7 @@ export const useQueueStore = defineStore('queue', {
         item.error = toErrorMessage(error)
         item.message = 'queue.messages.outputFormatFailed'
         item.messageParams = { error: item.error }
+        this.trimRetainedTasks()
         this.pumpQueue()
         return
       }
@@ -506,6 +537,7 @@ export const useQueueStore = defineStore('queue', {
       item.status = 'done'
       item.message = 'queue.messages.complete'
       item.messageParams = { duration: (event.durationMs / 1000).toFixed(1) }
+      this.trimRetainedTasks()
       this.pumpQueue()
     },
 
@@ -530,7 +562,7 @@ export const useQueueStore = defineStore('queue', {
       }
 
       item.status = 'ai'
-      item.aiProgress = clampProgress(progress)
+      item.aiProgress = normalizeProgress(progress)
       item.aiCurrentStep = step
       item.message = step ? 'queue.messages.aiProcessing' : 'queue.messages.aiProcessingShort'
       item.messageParams = step
@@ -556,6 +588,7 @@ export const useQueueStore = defineStore('queue', {
       item.status = 'done'
       item.message = 'queue.messages.transcriptionAiComplete'
       item.messageParams = undefined
+      this.trimRetainedTasks()
     },
 
     failAiTask(taskId: string, error: string) {
@@ -569,6 +602,7 @@ export const useQueueStore = defineStore('queue', {
       item.aiError = error
       item.message = 'queue.messages.aiFailed'
       item.messageParams = { error }
+      this.trimRetainedTasks()
     },
 
     async generateOutputsForTask(outputPath: string) {
@@ -613,26 +647,12 @@ export const useQueueStore = defineStore('queue', {
   }
 })
 
-function getEnabledAiTasks(settings: WorkflowSettings): AiTaskType[] {
-  const tasks: AiTaskType[] = []
-  if (settings.aiCorrect) tasks.push('correct')
-  if (settings.aiTranslate) tasks.push('translate')
-  if (settings.aiSummary) tasks.push('summary')
-  return tasks
-}
-
 function getAiStepTranslationKey(step: AiTaskType): string {
   if (step === 'correct') return 'queue.messages.aiStep.correct'
   if (step === 'translate') return 'queue.messages.aiStep.translate'
   return 'queue.messages.aiStep.summary'
 }
 
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message
-  }
-  return String(error)
-}
 
 function getBaseName(filePath: string): string {
   return filePath.split(/[/\\]/).filter(Boolean).pop() ?? filePath
@@ -654,4 +674,17 @@ function getDirectoryPath(filePath: string): string | undefined {
   }
 
   return filePath.slice(0, lastSeparatorIndex)
+}
+
+function trimTerminalEntries<T extends { status: QueueStatus }>(items: T[], maxTerminalItems: number): T[] {
+  let retainedTerminalCount = 0
+
+  return items.filter((item) => {
+    if (!isTerminalStatus(item.status)) {
+      return true
+    }
+
+    retainedTerminalCount += 1
+    return retainedTerminalCount <= maxTerminalItems
+  })
 }

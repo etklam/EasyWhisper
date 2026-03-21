@@ -2,16 +2,16 @@
   <n-card :title="t('components.queueTable.title')" class="queue-table">
     <div class="summary">
       <div class="summary-chip">
-        <span>{{ t('components.queueTable.summaryTotal', { count: queueStore.items.length }) }}</span>
+        <span>{{ t('components.queueTable.summaryTotal', { count: queueSummary.total }) }}</span>
       </div>
       <div class="summary-chip">
-        <span>{{ t('components.queueTable.summaryActive', { count: activeCount }) }}</span>
+        <span>{{ t('components.queueTable.summaryActive', { count: queueSummary.active }) }}</span>
       </div>
       <div class="summary-chip">
-        <span>{{ t('components.queueTable.summaryDone', { count: doneCount }) }}</span>
+        <span>{{ t('components.queueTable.summaryDone', { count: queueSummary.done }) }}</span>
       </div>
       <div class="summary-chip summary-chip-error">
-        <span>{{ t('components.queueTable.summaryError', { count: errorCount }) }}</span>
+        <span>{{ t('components.queueTable.summaryError', { count: queueSummary.error }) }}</span>
       </div>
     </div>
 
@@ -31,14 +31,7 @@ import { useQueueStore } from '@/stores/queue'
 
 const { t } = useI18n()
 const queueStore = useQueueStore()
-
-const activeCount = computed(() =>
-  queueStore.items.filter((item) =>
-    ['downloading', 'converting', 'transcribing', 'ai'].includes(item.status)
-  ).length
-)
-const doneCount = computed(() => queueStore.items.filter((item) => item.status === 'done').length)
-const errorCount = computed(() => queueStore.items.filter((item) => item.status === 'error').length)
+const queueSummary = computed(() => queueStore.summary)
 
 </script>
 

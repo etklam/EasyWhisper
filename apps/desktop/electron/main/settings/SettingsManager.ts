@@ -2,8 +2,19 @@ import { EventEmitter } from 'node:events'
 
 import Store from 'electron-store'
 import type { PersistedQueueItem, QueueSchema, SettingsSchema } from '@shared/settings.schema'
-import type { QueueItem } from '../queue/BatchQueue'
 import { VALID_LOCALES, VALID_OUTPUT_FORMATS } from '../constants'
+
+interface QueueItem {
+  id: string
+  source: 'file' | 'ytdlp'
+  filePath?: string
+  url?: string
+  title?: string
+  status: 'pending' | 'done' | 'error'
+  transcribeProgress: number
+  error?: string
+  outputPath?: string
+}
 
 const DEFAULT_SETTINGS: SettingsSchema = {
   locale: 'en',

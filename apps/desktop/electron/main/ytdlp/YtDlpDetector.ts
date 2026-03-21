@@ -4,6 +4,10 @@ import path from 'node:path'
 
 import type { YtDlpInstallation } from '@shared/types'
 import { getToolsManager } from '../tools'
+import { ExpiringValueCache } from '../utils'
+
+const DETECTION_CACHE_TTL_MS = 30_000
+const detectionCache = new ExpiringValueCache<YtDlpInstallation>(DETECTION_CACHE_TTL_MS)
 
 /**
  * 檢測系統中已安裝的 yt-dlp
@@ -13,7 +17,15 @@ export class YtDlpDetector {
   /**
    * 檢測所有可能的 yt-dlp 安裝位置
    */
-  async detect(): Promise<YtDlpInstallation> {
+  async detect(options: { forceRefresh?: boolean } = {}): Promise<YtDlpInstallation> {
+    return detectionCache.get(async () => this.runDetection(), options)
+  }
+
+  invalidateCache(): void {
+    detectionCache.invalidate()
+  }
+
+  private async runDetection(): Promise<YtDlpInstallation> {
     // 1. 檢查 PATH 中的 yt-dlp 命令
     const systemInstall = await this.findSystemCommand()
     if (systemInstall) {

@@ -13,6 +13,7 @@ import type {
   OutputFormat,
   OutputFormatPayload,
   OutputFormatResponse,
+  ToolDetectPayload,
   ToolOperationResponse,
   ToolProgressEvent,
   WorkflowSettings,
@@ -57,12 +58,12 @@ declare global {
       cancelYtDlp: (payload: YtDlpCancelPayload) => Promise<YtDlpCancelResponse>
       downloadManagedYtDlp: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<YtDlpInstallation>>
       updateManagedYtDlp: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<YtDlpInstallation>>
-      detectManagedYtDlp: () => Promise<YtDlpInstallation>
+      detectManagedYtDlp: (payload?: ToolDetectPayload) => Promise<YtDlpInstallation>
       downloadManagedFfmpeg: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<FfmpegInstallation>>
       updateManagedFfmpeg: (payload?: { signal?: AbortSignal }) => Promise<ToolOperationResponse<FfmpegInstallation>>
-      detectManagedFfmpeg: () => Promise<FfmpegInstallation>
-      detectSystemYtDlp: () => Promise<YtDlpInstallation>
-      detectSystemFfmpeg: () => Promise<FfmpegInstallation>
+      detectManagedFfmpeg: (payload?: ToolDetectPayload) => Promise<FfmpegInstallation>
+      detectSystemYtDlp: (payload?: ToolDetectPayload) => Promise<YtDlpInstallation>
+      detectSystemFfmpeg: (payload?: ToolDetectPayload) => Promise<FfmpegInstallation>
       onWhisperProgress: (listener: (event: WhisperProgressEvent) => void) => () => void
       onWhisperComplete: (listener: (event: WhisperCompleteEvent) => void) => () => void
       onWhisperError: (listener: (event: WhisperErrorEvent) => void) => () => void

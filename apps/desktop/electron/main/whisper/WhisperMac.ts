@@ -9,6 +9,7 @@ import path from 'node:path'
 import { cpus, homedir } from 'node:os'
 import { spawn } from 'node:child_process'
 
+import { clampProgress } from '@shared/workflow'
 import type {
   WhisperCompleteEvent,
   WhisperProgressEvent,
@@ -278,7 +279,7 @@ function parseWhisperProgress(line: string): number | null {
     return null
   }
 
-  return Math.max(0, Math.min(100, progress))
+  return clampProgress(progress)
 }
 
 function wait(ms: number): Promise<void> {

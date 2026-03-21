@@ -5,6 +5,7 @@ import path from 'node:path'
 import { IPC_CHANNELS } from '@shared/ipc'
 import type {
   ToolOperationResponse,
+  ToolDetectPayload,
   YtDlpCancelPayload,
   YtDlpCancelResponse,
   YtDlpCompleteEvent,
@@ -70,6 +71,7 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
   const detector = new YtDlpDetector()
   const toolsManager = getToolsManager()
   const ytDlpManager = toolsManager.getYtDlpManager()
+  const activeDownloads = new Map<string, YtDlpDownloader>()
 
   if (typeof ipcMain.removeHandler === 'function') {
     ipcMain.removeHandler(IPC_CHANNELS.YTDLP_DOWNLOAD)
@@ -91,8 +93,8 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
    */
   ipcMain.handle(
     IPC_CHANNELS.YTDLP_DETECT,
-    async (): Promise<YtDlpInstallation> => {
-      return detector.detect()
+    async (_event, payload?: ToolDetectPayload): Promise<YtDlpInstallation> => {
+      return detector.detect({ forceRefresh: payload?.forceRefresh })
     }
   )
 
@@ -111,6 +113,7 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
         const installation = await ytDlpManager.downloadManaged(
           createManagedDownloadOptions(emitManagedProgress, signal)
         )
+        detector.invalidateCache()
         return { ok: true, installation }
       } catch (error) {
         return { ok: false, error: formatToolError(error) }
@@ -126,6 +129,7 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
         const installation = await ytDlpManager.updateManaged(
           createManagedDownloadOptions(emitManagedProgress, signal)
         )
+        detector.invalidateCache()
         return { ok: true, installation }
       } catch (error) {
         return { ok: false, error: formatToolError(error) }
@@ -141,13 +145,14 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
 
       const downloader = createDownloader(ytDlpPath)
       const taskId = payload.taskId ?? randomUUID()
+      activeDownloads.set(taskId, downloader)
 
       void downloader
         .downloadAudio(taskId, payload.url, {
           format: payload.format,
           cookiesPath: payload.cookiesPath,
           ffmpegPath: await resolveFfmpegPath(),
-          jsRuntimes: detectSupportedJsRuntimes(),
+          jsRuntimes: await detectSupportedJsRuntimes(),
           onProgress: (progress: number) => {
             const event: YtDlpProgressEvent = {
               taskId,
@@ -170,6 +175,9 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
           }
           mainWindow.webContents.send(IPC_CHANNELS.YTDLP_ERROR, event)
         })
+        .finally(() => {
+          activeDownloads.delete(taskId)
+        })
 
       return {
         taskId,
@@ -181,10 +189,18 @@ export function registerYtDlpHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(
     IPC_CHANNELS.YTDLP_CANCEL,
     async (_event, payload: YtDlpCancelPayload): Promise<YtDlpCancelResponse> => {
-      // TODO: 需要追蹤 active downloader 實例
+      const downloader = activeDownloads.get(payload.taskId)
+      if (!downloader) {
+        return {
+          taskId: payload.taskId,
+          cancelled: false
+        }
+      }
+
+      const cancelled = downloader.cancelDownload(payload.taskId)
       return {
         taskId: payload.taskId,
-        cancelled: false
+        cancelled
       }
     }
   )

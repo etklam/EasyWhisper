@@ -2,7 +2,11 @@ import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
+import { ExpiringValueCache } from '../utils'
+
 type JsRuntimeName = 'deno' | 'node' | 'bun'
+const DETECTION_CACHE_TTL_MS = 30_000
+const runtimeDetectionCache = new ExpiringValueCache<string[]>(DETECTION_CACHE_TTL_MS)
 
 const COMMON_RUNTIME_PATHS: Record<NodeJS.Platform, Record<JsRuntimeName, string[]>> = {
   darwin: {
@@ -36,15 +40,21 @@ const COMMON_RUNTIME_PATHS: Record<NodeJS.Platform, Record<JsRuntimeName, string
   netbsd: { deno: [], node: [], bun: [] }
 }
 
-export function detectSupportedJsRuntimes(): string[] {
-  const runtimes: JsRuntimeName[] = ['deno', 'node', 'bun']
+export function detectSupportedJsRuntimes(options: { forceRefresh?: boolean } = {}): Promise<string[]> {
+  return runtimeDetectionCache.get(async () => {
+    const runtimes: JsRuntimeName[] = ['deno', 'node', 'bun']
 
-  return runtimes
-    .map((runtime) => {
-      const runtimePath = resolveRuntimePath(runtime)
-      return runtimePath ? `${runtime}:${runtimePath}` : null
-    })
-    .filter((runtime): runtime is string => runtime !== null)
+    return runtimes
+      .map((runtime) => {
+        const runtimePath = resolveRuntimePath(runtime)
+        return runtimePath ? `${runtime}:${runtimePath}` : null
+      })
+      .filter((runtime): runtime is string => runtime !== null)
+  }, options)
+}
+
+export function invalidateJsRuntimeDetectionCache(): void {
+  runtimeDetectionCache.invalidate()
 }
 
 function resolveRuntimePath(runtime: JsRuntimeName): string | null {

@@ -1,11 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useWhisperStore } from '@/stores/whisper'
-import type { WhisperProgressEvent, WhisperCompleteEvent, WhisperErrorEvent } from '@shared/types'
 
-// Mock window.fosswhisper
-const mockStartWhisper = vi.fn().mockResolvedValue({ taskId: 'test-123', accepted: true })
-const mockStartYtDlp = vi.fn().mockResolvedValue({ taskId: 'test-123', accepted: true })
+import { useWhisperStore } from '@/stores/whisper'
+
 const mockListModels = vi.fn().mockResolvedValue([])
 const mockGetOutputFormats = vi.fn().mockResolvedValue(['txt', 'srt', 'vtt', 'json'])
 const mockDownloadModel = vi.fn()
@@ -30,33 +27,17 @@ const mockSetSettings = vi.fn().mockImplementation(async (settings) => ({
   ...settings
 }))
 const mockListAiModels = vi.fn().mockResolvedValue(['llama3.1'])
-const mockRunAi = vi.fn()
-const mockUnsubscribeProgress = vi.fn()
-const mockUnsubscribeComplete = vi.fn()
-const mockUnsubscribeError = vi.fn()
-const mockUnsubscribeYtDlpProgress = vi.fn()
-const mockUnsubscribeYtDlpComplete = vi.fn()
-const mockUnsubscribeYtDlpError = vi.fn()
-const mockUnsubscribeModelProgress = vi.fn()
+const mockOnModelProgress = vi.fn(() => vi.fn())
 
 Object.defineProperty(window, 'fosswhisper', {
   value: {
-    startWhisper: mockStartWhisper,
-    startYtDlp: mockStartYtDlp,
     listModels: mockListModels,
     downloadModel: mockDownloadModel,
     getOutputFormats: mockGetOutputFormats,
     getSettings: mockGetSettings,
     setSettings: mockSetSettings,
     listAiModels: mockListAiModels,
-    runAi: mockRunAi,
-    onWhisperProgress: vi.fn(() => mockUnsubscribeProgress),
-    onWhisperComplete: vi.fn(() => mockUnsubscribeComplete),
-    onWhisperError: vi.fn(() => mockUnsubscribeError),
-    onYtDlpProgress: vi.fn(() => mockUnsubscribeYtDlpProgress),
-    onYtDlpComplete: vi.fn(() => mockUnsubscribeYtDlpComplete),
-    onYtDlpError: vi.fn(() => mockUnsubscribeYtDlpError),
-    onModelProgress: vi.fn(() => mockUnsubscribeModelProgress)
+    onModelProgress: mockOnModelProgress
   },
   writable: true
 })
@@ -67,7 +48,7 @@ describe('WhisperStore', () => {
     vi.clearAllMocks()
   })
 
-  it('should initialize with default settings', () => {
+  it('initializes with default settings', () => {
     const store = useWhisperStore()
 
     expect(store.settings.modelPath).toBe('/path/to/models/ggml-base.bin')
@@ -76,36 +57,9 @@ describe('WhisperStore', () => {
     expect(store.settings.useMetal).toBe(true)
     expect(store.settings.outputFormats).toEqual(['txt', 'srt'])
     expect(store.settings.ytdlpAudioFormat).toBe('mp3')
-    expect(store.tasks).toHaveLength(0)
   })
 
-  it('should enqueue files and create tasks', async () => {
-    const store = useWhisperStore()
-    const filePaths = ['/path/to/audio1.mp3', '/path/to/audio2.wav']
-
-    await store.enqueueFiles(filePaths)
-
-    expect(store.tasks).toHaveLength(2)
-    // Tasks are unshifted, so first enqueued appears last in array
-    expect(store.tasks[0].audioPath).toBe('/path/to/audio2.wav')
-    expect(store.tasks[1].audioPath).toBe('/path/to/audio1.mp3')
-  })
-
-  it('should start tasks when enqueued', async () => {
-    const store = useWhisperStore()
-
-    await store.enqueueFiles(['/path/to/audio.mp3'])
-
-    expect(mockStartWhisper).toHaveBeenCalledTimes(1)
-    expect(mockStartWhisper).toHaveBeenCalledWith(
-      expect.objectContaining({
-        audioPath: '/path/to/audio.mp3',
-        modelPath: store.settings.modelPath
-      })
-    )
-  })
-
-  it('should update settings', async () => {
+  it('updates settings through preload', async () => {
     const store = useWhisperStore()
 
     await store.updateSettings({
@@ -117,10 +71,9 @@ describe('WhisperStore', () => {
     expect(store.settings.modelPath).toBe('/new/model/path.bin')
     expect(store.settings.threads).toBe(8)
     expect(store.settings.language).toBe('en')
-    expect(store.settings.useMetal).toBe(true) // unchanged
   })
 
-  it('should initialize from preload settings', async () => {
+  it('initializes settings, models and output formats from preload', async () => {
     const store = useWhisperStore()
 
     await store.initialize()
@@ -131,134 +84,45 @@ describe('WhisperStore', () => {
     expect(mockGetOutputFormats).toHaveBeenCalled()
     expect(store.initialized).toBe(true)
     expect(store.aiModels).toEqual(['llama3.1'])
+    expect(store.outputFormats).toEqual(['txt', 'srt', 'vtt', 'json'])
   })
 
-  it('should bind IPC listeners only once', () => {
+  it('binds only the model progress listener', () => {
     const store = useWhisperStore()
 
     store.bindIpcListeners()
-    const firstBound = store.listenersBound
-
     store.bindIpcListeners()
 
-    expect(store.listenersBound).toBe(firstBound)
+    expect(store.listenersBound).toBe(true)
+    expect(mockOnModelProgress).toHaveBeenCalledTimes(1)
+    expect(store.unsubscribeHandles).toHaveLength(1)
   })
 
-  it('should handle progress events', () => {
+  it('resolves temporary language over default language', () => {
     const store = useWhisperStore()
-    store.bindIpcListeners()
 
-    const event: WhisperProgressEvent = {
-      taskId: 'task-123',
-      progress: 0.5,
-      stage: 'transcribing',
-      message: 'Processing...'
-    }
+    expect(store.getEffectiveLanguage()).toBe('auto')
 
-    store.tasks.push({
-      id: 'task-123',
-      audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-      progress: 0
-    })
+    store.setTemporaryLanguage('ja')
 
-    // Manually simulate the callback
-    const task = store.tasks.find((item) => item.id === event.taskId)
-    if (task) {
-      task.progress = event.progress
-      task.status = 'running'
-      task.message = event.message
-    }
-
-    expect(store.tasks[0].progress).toBe(0.5)
-    expect(store.tasks[0].status).toBe('running')
-    expect(store.tasks[0].message).toBe('Processing...')
+    expect(store.getEffectiveLanguage()).toBe('ja')
   })
 
-  it('should handle complete events', () => {
+  it('resets derived state while preserving settings object shape', () => {
     const store = useWhisperStore()
     store.bindIpcListeners()
-
-    const event: WhisperCompleteEvent = {
-      taskId: 'task-123',
-      outputPath: '/path/to/output.txt',
-      text: 'Transcribed text',
-      durationMs: 5000
-    }
-
-    store.tasks.push({
-      id: 'task-123',
-      audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
-      createdAt: new Date().toISOString(),
-      status: 'running',
-      progress: 0.5
-    })
-
-    // Manually simulate the callback
-    const task = store.tasks.find((item) => item.id === event.taskId)
-    if (task) {
-      task.progress = 100
-      task.status = 'completed'
-      task.outputPath = event.outputPath
-      task.message = `Done in ${(event.durationMs / 1000).toFixed(1)}s`
-    }
-
-    expect(store.tasks[0].progress).toBe(100)
-    expect(store.tasks[0].status).toBe('completed')
-    expect(store.tasks[0].outputPath).toBe('/path/to/output.txt')
-    expect(store.tasks[0].message).toBe('Done in 5.0s')
-  })
-
-  it('should handle error events', () => {
-    const store = useWhisperStore()
-    store.bindIpcListeners()
-
-    const event: WhisperErrorEvent = {
-      taskId: 'task-123',
-      error: 'Failed to transcribe'
-    }
-
-    store.tasks.push({
-      id: 'task-123',
-      audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
-      createdAt: new Date().toISOString(),
-      status: 'running',
-      progress: 0.5
-    })
-
-    // Manually simulate the callback
-    const task = store.tasks.find((item) => item.id === event.taskId)
-    if (task) {
-      task.status = 'error'
-      task.errorMessage = event.error
-      task.message = event.error
-    }
-
-    expect(store.tasks[0].status).toBe('error')
-    expect(store.tasks[0].errorMessage).toBe('Failed to transcribe')
-    expect(store.tasks[0].message).toBe('Failed to transcribe')
-  })
-
-  it('should reset store state', () => {
-    const store = useWhisperStore()
-    store.bindIpcListeners()
-    store.tasks.push({
-      id: 'task-123',
-      audioPath: '/path/to/audio.mp3',
-      modelPath: '/path/to/model.bin',
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-      progress: 0
-    })
+    store.modelDownloadProgress['ggml-base.bin'] = 100
+    store.outputFormats = ['txt']
+    store.temporaryLanguage = 'ja'
+    store.initialized = true
 
     store.reset()
 
-    expect(store.tasks).toHaveLength(0)
     expect(store.listenersBound).toBe(false)
     expect(store.unsubscribeHandles).toHaveLength(0)
+    expect(store.modelDownloadProgress).toEqual({})
+    expect(store.outputFormats).toEqual([])
+    expect(store.temporaryLanguage).toBeNull()
+    expect(store.initialized).toBe(false)
   })
 })

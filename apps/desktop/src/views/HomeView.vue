@@ -10,16 +10,16 @@
 
         <div class="workspace-stats" aria-label="workspace summary">
           <div class="stat-card">
-            <span class="stat-label">{{ t('components.queueTable.summaryTotal', { count: queueStore.items.length }) }}</span>
-            <strong>{{ queueStore.items.length }}</strong>
+            <span class="stat-label">{{ t('components.queueTable.summaryTotal', { count: queueSummary.total }) }}</span>
+            <strong>{{ queueSummary.total }}</strong>
           </div>
           <div class="stat-card">
-            <span class="stat-label">{{ t('components.queueTable.summaryActive', { count: activeCount }) }}</span>
-            <strong>{{ activeCount }}</strong>
+            <span class="stat-label">{{ t('components.queueTable.summaryActive', { count: queueSummary.active }) }}</span>
+            <strong>{{ queueSummary.active }}</strong>
           </div>
           <div class="stat-card">
-            <span class="stat-label">{{ t('components.queueTable.summaryDone', { count: doneCount }) }}</span>
-            <strong>{{ doneCount }}</strong>
+            <span class="stat-label">{{ t('components.queueTable.summaryDone', { count: queueSummary.done }) }}</span>
+            <strong>{{ queueSummary.done }}</strong>
           </div>
         </div>
       </header>
@@ -81,12 +81,7 @@ const queueStore = useQueueStore()
 const aiStore = useAiStore()
 
 const effectiveLanguage = computed(() => whisperStore.getEffectiveLanguage())
-const activeCount = computed(() =>
-  queueStore.items.filter((item) =>
-    ['downloading', 'converting', 'transcribing', 'ai'].includes(item.status)
-  ).length
-)
-const doneCount = computed(() => queueStore.items.filter((item) => item.status === 'done').length)
+const queueSummary = computed(() => queueStore.summary)
 const transcriptionLanguageOptions = computed(() => [
   { label: t('transcriptionLanguage.auto'), value: 'auto' },
   { label: t('transcriptionLanguage.en'), value: 'en' },

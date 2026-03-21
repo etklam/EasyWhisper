@@ -7,6 +7,7 @@ import type {
   AiTaskType,
   WorkflowSettings
 } from '@shared/types'
+import { clampProgress, getEnabledAiTasks, toErrorMessage } from '@shared/workflow'
 import {
   notifyAiCompleted,
   notifyAiFailed,
@@ -14,7 +15,6 @@ import {
   notifyAiQueued,
   registerAiWorkflowBridge
 } from './aiWorkflowCoordinator'
-import { useWhisperStore } from './whisper'
 
 export type AiConnectionStatus = 'idle' | 'checking' | 'connected' | 'disconnected'
 export type AiWorkflowStatus = 'pending' | 'running' | 'done' | 'error'
@@ -49,7 +49,7 @@ export interface AiWorkflowTask {
 }
 
 const MAX_AI_CONCURRENT_TASKS = 2
-const AI_STEP_ORDER: AiTaskType[] = ['correct', 'translate', 'summary']
+const MAX_RETAINED_TERMINAL_WORKFLOWS = 100
 
 export const useAiStore = defineStore('ai', {
   state: () => ({
@@ -145,9 +145,9 @@ export const useAiStore = defineStore('ai', {
       }
     },
 
-    enqueueWorkflow(input: { queueTaskId: string; title: string; text: string; settings?: WorkflowSettings }) {
+    enqueueWorkflow(input: { queueTaskId: string; title: string; text: string; settings: WorkflowSettings }) {
       this.registerCoordinator()
-      const settings = input.settings ?? useWhisperStore().settings
+      const settings = input.settings
       const steps = getEnabledAiTasks(settings)
 
       if (!settings.aiEnabled || !settings.aiModel || steps.length === 0) {
@@ -163,6 +163,7 @@ export const useAiStore = defineStore('ai', {
         this.workflows.unshift(workflow)
       }
 
+      this.trimRetainedWorkflows()
       this.lastError = ''
       notifyAiQueued(input.queueTaskId, steps[0])
       this.pumpQueue()
@@ -193,6 +194,7 @@ export const useAiStore = defineStore('ai', {
         workflow.status = 'error'
         workflow.error = '已取消'
         workflow.completedAt = new Date().toISOString()
+        this.trimRetainedWorkflows()
       }
     },
 
@@ -284,12 +286,14 @@ export const useAiStore = defineStore('ai', {
         workflow.progress = 100
         workflow.completedAt = new Date().toISOString()
         workflow.currentStep = undefined
+        this.trimRetainedWorkflows()
         notifyAiCompleted(workflow.queueTaskId, workflow.results)
       } catch (error) {
         workflow.status = 'error'
         workflow.error = toErrorMessage(error)
         workflow.completedAt = new Date().toISOString()
         workflow.currentStep = undefined
+        this.trimRetainedWorkflows()
         notifyAiFailed(workflow.queueTaskId, workflow.error)
         void this.refreshStatus()
       } finally {
@@ -352,6 +356,10 @@ export const useAiStore = defineStore('ai', {
     findWorkflowByExecutionTaskId(taskId: string): AiWorkflowTask | undefined {
       const workflowId = extractWorkflowId(taskId)
       return workflowId ? this.findWorkflow(workflowId) : undefined
+    },
+
+    trimRetainedWorkflows() {
+      this.workflows = trimTerminalWorkflows(this.workflows, MAX_RETAINED_TERMINAL_WORKFLOWS)
     }
   }
 })
@@ -397,14 +405,6 @@ function extractWorkflowId(taskId: string): string | undefined {
   return taskId.slice(0, separatorIndex)
 }
 
-function getEnabledAiTasks(settings: WorkflowSettings): AiTaskType[] {
-  return AI_STEP_ORDER.filter((taskType) => {
-    if (taskType === 'correct') return settings.aiCorrect
-    if (taskType === 'translate') return settings.aiTranslate
-    return settings.aiSummary
-  })
-}
-
 function calculateWorkflowProgress(steps: AiWorkflowStep[]): number {
   if (steps.length === 0) {
     return 100
@@ -420,10 +420,15 @@ function calculateWorkflowProgress(steps: AiWorkflowStep[]): number {
   return clampProgress(total / steps.length)
 }
 
-function clampProgress(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value)))
-}
+function trimTerminalWorkflows(workflows: AiWorkflowTask[], maxTerminalWorkflows: number): AiWorkflowTask[] {
+  let retainedTerminalCount = 0
 
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  return workflows.filter((workflow) => {
+    if (workflow.status !== 'done' && workflow.status !== 'error') {
+      return true
+    }
+
+    retainedTerminalCount += 1
+    return retainedTerminalCount <= maxTerminalWorkflows
+  })
 }

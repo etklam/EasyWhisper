@@ -8,6 +8,7 @@ import type {
   AudioConvertResponse,
   AudioProgressEvent,
   FfmpegInstallation,
+  ToolDetectPayload,
   ToolOperationResponse
 } from '@shared/types'
 import { FfmpegDetector } from '../audio/FfmpegDetector'
@@ -69,8 +70,8 @@ export function registerAudioHandlers(mainWindow: BrowserWindow): void {
    */
   ipcMain.handle(
     IPC_CHANNELS.FFMPEG_DETECT,
-    async (): Promise<FfmpegInstallation> => {
-      return detector.detect()
+    async (_event, payload?: ToolDetectPayload): Promise<FfmpegInstallation> => {
+      return detector.detect({ forceRefresh: payload?.forceRefresh })
     }
   )
 
@@ -88,6 +89,7 @@ export function registerAudioHandlers(mainWindow: BrowserWindow): void {
         const installation = await ffmpegManager.downloadManaged(
           createManagedDownloadOptions(emitManagedProgress)
         )
+        detector.invalidateCache()
         return { ok: true, installation }
       } catch (error) {
         return { ok: false, error: formatToolError(error) }
@@ -102,6 +104,7 @@ export function registerAudioHandlers(mainWindow: BrowserWindow): void {
         const installation = await ffmpegManager.updateManaged(
           createManagedDownloadOptions(emitManagedProgress)
         )
+        detector.invalidateCache()
         return { ok: true, installation }
       } catch (error) {
         return { ok: false, error: formatToolError(error) }
