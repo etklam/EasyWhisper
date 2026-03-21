@@ -1,7 +1,7 @@
 {
   "name": "easywhisper",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0-alpha",
   "packageManager": "pnpm@10.17.1",
   "scripts": {
     "dev": "pnpm --filter @easywhisper/desktop dev",
