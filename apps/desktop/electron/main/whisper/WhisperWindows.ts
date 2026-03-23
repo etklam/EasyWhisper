@@ -1,8 +1,8 @@
 import { constants as fsConstants } from 'node:fs'
 import { access, mkdir, readFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
 import { cpus } from 'node:os'
 import path from 'node:path'
-import { spawn } from 'node:child_process'
 
 import type {
   WhisperCompleteEvent,
@@ -27,19 +27,6 @@ interface WhisperWindowsOptions {
   runtimeDir?: string
 }
 
-interface WrapperProgressPayload {
-  type?: string
-  progress?: number
-  stage?: WhisperProgressEvent['stage']
-  message?: string
-}
-
-interface WhisperWindowsRuntimeFiles {
-  cliPath: string
-  dllPath?: string
-  runtimeDir: string
-}
-
 export class WhisperWindows implements WhisperRuntime {
   private readonly userDataDir: string
   private readonly modelsDir: string
@@ -53,14 +40,20 @@ export class WhisperWindows implements WhisperRuntime {
 
   async transcribe(options: WhisperTranscribeOptions): Promise<WhisperCompleteEvent> {
     const startedAt = Date.now()
+    const requestedModelId = path.basename(options.modelPath) as WhisperModelId
+
+    if ((WHISPER_WINDOWS_UNSUPPORTED_MODEL_IDS as readonly string[]).includes(requestedModelId)) {
+      throw new Error(`Model ${requestedModelId} is not supported on Windows. Use ggml-large-v2.bin instead.`)
+    }
+
     const outputPath = await this.getOutputPath(options)
-    const runtimeFiles = await this.resolveRuntimeFiles()
+    const cliPath = await this.resolveCliPath()
     const modelPath = await resolveModelPath(this.modelsDir, options.modelPath)
     const modelId = path.basename(modelPath) as WhisperModelId
 
-    if (!runtimeFiles) {
+    if (!cliPath) {
       throw new Error(
-        'WhisperCLI.exe not found. Install the Windows const-me runtime under resources/win or set WHISPER_WINDOWS_CLI_PATH.'
+        'whisper-cli.exe not found. Install the Windows whisper.cpp runtime under resources/win or set WHISPER_WINDOWS_CLI_PATH.'
       )
     }
 
@@ -69,9 +62,9 @@ export class WhisperWindows implements WhisperRuntime {
     }
 
     return new Promise((resolve, reject) => {
-      const args = this.buildArgs(options, outputPath, modelPath, runtimeFiles)
-      const proc = spawn(runtimeFiles.cliPath, args, {
-        stdio: ['ignore', 'pipe', 'pipe']
+      const args = buildWhisperWindowsCliArgs(options, outputPath, modelPath)
+      const proc = spawn(cliPath, args, {
+        stdio: ['ignore', 'ignore', 'pipe']
       })
       const stderrLines: string[] = []
 
@@ -79,31 +72,17 @@ export class WhisperWindows implements WhisperRuntime {
         taskId: options.taskId,
         progress: 0,
         stage: 'preparing',
-        message: 'Starting Windows Whisper runtime'
+        message: 'Starting whisper.cpp'
       })
 
-      const parseStdout = createLineBuffer((line) => {
-        const progressEvent = parseWrapperProgressLine(line, options.taskId)
+      const parseStderr = createLineBuffer((line) => {
+        stderrLines.push(line)
+        const progressEvent = parseWhisperCppProgressLine(line, options.taskId)
         if (progressEvent) {
           options.onProgress(progressEvent)
         }
       })
-      const parseStderr = createLineBuffer((line) => {
-        stderrLines.push(line)
-        const progress = parsePercentProgress(line)
-        if (progress === null) {
-          return
-        }
-        options.onProgress({
-          taskId: options.taskId,
-          progress,
-          stage: 'transcribing',
-          message: line
-        })
-      })
 
-      proc.stdout.on('data', (chunk: Buffer) => parseStdout.push(chunk))
-      proc.stdout.on('end', () => parseStdout.flush())
       proc.stderr.on('data', (chunk: Buffer) => parseStderr.push(chunk))
       proc.stderr.on('end', () => parseStderr.flush())
       proc.on('error', reject)
@@ -111,7 +90,7 @@ export class WhisperWindows implements WhisperRuntime {
       proc.on('close', async (code) => {
         if (code !== 0) {
           const detail = stderrLines.slice(-5).join(' | ')
-          reject(new Error(`WhisperCLI.exe exited with code ${code}${detail ? `: ${detail}` : ''}`))
+          reject(new Error(`whisper-cli.exe exited with code ${code}${detail ? `: ${detail}` : ''}`))
           return
         }
 
@@ -147,52 +126,17 @@ export class WhisperWindows implements WhisperRuntime {
     return downloadWhisperModel(this.modelsDir, modelId, onProgress)
   }
 
-  private buildArgs(
-    options: WhisperTranscribeOptions,
-    outputPath: string,
-    modelPath: string,
-    runtimeFiles: WhisperWindowsRuntimeFiles
-  ): string[] {
-    const args = [
-      '--model',
-      modelPath,
-      '--input',
-      options.audioPath,
-      '--output',
-      outputPath,
-      '--language',
-      options.language ?? 'auto',
-      '--threads',
-      String(options.threads ?? Math.max(2, Math.floor(cpus().length / 2))),
-      '--compute',
-      'auto'
-    ]
-
-    if (runtimeFiles.dllPath) {
-      args.push('--dll', runtimeFiles.dllPath)
-    }
-
-    return args
-  }
-
   private async getOutputPath(options: WhisperTranscribeOptions): Promise<string> {
     const outputDir = options.outputDir ?? path.join(this.userDataDir, 'outputs')
     await mkdir(outputDir, { recursive: true })
     return path.join(outputDir, `${sanitizeOutputFileStem(options.outputFileStem ?? options.taskId)}.json`)
   }
 
-  private async resolveRuntimeFiles(): Promise<WhisperWindowsRuntimeFiles | null> {
-    for (const runtimeDir of getWhisperWindowsRuntimeDirCandidates(this.runtimeDir)) {
-      const cliPath = process.env.WHISPER_WINDOWS_CLI_PATH ?? path.join(runtimeDir, 'WhisperCLI.exe')
-
+  private async resolveCliPath(): Promise<string | null> {
+    for (const cliPath of getWhisperWindowsCliCandidates(this.runtimeDir)) {
       try {
         await access(cliPath, fsConstants.R_OK)
-        const dllPath = await firstAccessiblePath(getWhisperWindowsDllCandidates(runtimeDir))
-        return {
-          cliPath,
-          dllPath: dllPath ?? undefined,
-          runtimeDir
-        }
+        return cliPath
       } catch {
         continue
       }
@@ -233,30 +177,44 @@ export function getWhisperWindowsRuntimeDirCandidates(runtimeDir: string): strin
   return Array.from(new Set(candidates))
 }
 
-export function getWhisperWindowsDllCandidates(runtimeDir: string): string[] {
+export function getWhisperWindowsCliCandidates(runtimeDir: string): string[] {
   return Array.from(new Set([
-    process.env.WHISPER_WINDOWS_DLL_PATH,
-    path.join(runtimeDir, 'whisper.dll'),
-    path.join(runtimeDir, 'libwhisper.dll')
+    process.env.WHISPER_WINDOWS_CLI_PATH,
+    ...getWhisperWindowsRuntimeDirCandidates(runtimeDir).map((candidate) =>
+      path.join(candidate, 'whisper-cli.exe')
+    )
   ].filter((candidate): candidate is string => Boolean(candidate))))
 }
 
-export function parseWrapperProgressLine(
+export function buildWhisperWindowsCliArgs(
+  options: WhisperTranscribeOptions,
+  outputPath: string,
+  modelPath: string
+): string[] {
+  const outputWithoutExt = outputPath.replace(/\.json$/, '')
+
+  return [
+    '-m',
+    modelPath,
+    '-f',
+    options.audioPath,
+    '-l',
+    options.language ?? 'auto',
+    '--output-json',
+    '-of',
+    outputWithoutExt,
+    '-t',
+    String(options.threads ?? Math.max(2, Math.floor(cpus().length / 2)))
+  ]
+}
+
+export function parseWhisperCppProgressLine(
   line: string,
   taskId: string
 ): WhisperProgressEvent | null {
   try {
-    const parsed = JSON.parse(line) as WrapperProgressPayload
-    if (parsed.type !== 'progress' || typeof parsed.progress !== 'number') {
-      return null
-    }
-
-    return {
-      taskId,
-      progress: Math.max(0, Math.min(100, Math.round(parsed.progress))),
-      stage: parsed.stage ?? 'transcribing',
-      message: parsed.message ?? line
-    }
+    JSON.parse(line)
+    return null
   } catch {
     const progress = parsePercentProgress(line)
     if (progress === null) {
@@ -292,17 +250,4 @@ function parsePercentProgress(line: string): number | null {
   }
 
   return Math.max(0, Math.min(100, progress))
-}
-
-async function firstAccessiblePath(candidates: string[]): Promise<string | null> {
-  for (const candidate of candidates) {
-    try {
-      await access(candidate, fsConstants.R_OK)
-      return candidate
-    } catch {
-      continue
-    }
-  }
-
-  return null
 }

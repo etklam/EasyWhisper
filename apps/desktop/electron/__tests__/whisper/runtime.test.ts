@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { getPathMock, whisperMacCtor, whisperWindowsCtor } = vi.hoisted(() => ({
@@ -30,11 +32,12 @@ describe('getWhisperRuntime', () => {
   it('creates a mac runtime on non-Windows platforms', async () => {
     vi.stubGlobal('process', { ...process, platform: 'darwin' })
     const { getWhisperRuntime } = await import('../../main/whisper/runtime')
+    const modelsDir = path.join('/tmp/userData', 'models')
 
     expect(getWhisperRuntime()).toEqual({ kind: 'mac' })
     expect(whisperMacCtor).toHaveBeenCalledWith({
       projectRoot: '/tmp/userData',
-      modelsDir: '/tmp/userData/models',
+      modelsDir,
       whisperDir: undefined
     })
   })
@@ -42,11 +45,12 @@ describe('getWhisperRuntime', () => {
   it('creates a Windows runtime on win32', async () => {
     vi.stubGlobal('process', { ...process, platform: 'win32' })
     const { getWhisperRuntime } = await import('../../main/whisper/runtime')
+    const modelsDir = path.join('/tmp/userData', 'models')
 
     expect(getWhisperRuntime()).toEqual({ kind: 'windows' })
     expect(whisperWindowsCtor).toHaveBeenCalledWith({
       userDataDir: '/tmp/userData',
-      modelsDir: '/tmp/userData/models'
+      modelsDir
     })
   })
 })

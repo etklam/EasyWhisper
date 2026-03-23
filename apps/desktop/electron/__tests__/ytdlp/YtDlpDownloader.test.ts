@@ -26,6 +26,10 @@ describe('YtDlpDownloader', () => {
     vi.mocked(rename).mockResolvedValue(undefined)
   })
 
+  function normalizeFsPath(value: string): string {
+    return path.normalize(value)
+  }
+
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -212,7 +216,7 @@ https://youtu.be/456`
       expect(spawn).toHaveBeenCalledWith(
         mockYtDlpPath,
         expect.arrayContaining([
-          '--ffmpeg-location', '/opt/homebrew/bin'
+          '--ffmpeg-location', normalizeFsPath('/opt/homebrew/bin')
         ])
       )
     })
@@ -467,9 +471,11 @@ https://youtu.be/456`
   describe('Metadata Extraction', () => {
     it('should extract video title from yt-dlp output', async () => {
       const url = 'https://youtube.com/watch?v=123'
+      const originalPath = normalizeFsPath('/tmp/ytdlp/garbled.mp3')
+      const renamedPath = path.join('/tmp', 'ytdlp', 'My Video Title.mp3')
 
       vi.mocked(readFile)
-        .mockResolvedValueOnce('/tmp/ytdlp/garbled.mp3')
+        .mockResolvedValueOnce(originalPath)
         .mockResolvedValueOnce('My Video Title')
 
       vi.mocked(spawn).mockReturnValue({
@@ -486,7 +492,7 @@ https://youtu.be/456`
 
       const title = path.basename(outputPath, '.mp3')
       expect(title).toBe('My Video Title')
-      expect(rename).toHaveBeenCalledWith('/tmp/ytdlp/garbled.mp3', '/tmp/ytdlp/My Video Title.mp3')
+      expect(rename).toHaveBeenCalledWith(originalPath, renamedPath)
     })
   })
 })

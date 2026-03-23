@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
@@ -98,6 +100,13 @@ import { registerYtDlpHandlers } from '../../main/ipc/ytdlpHandlers'
 
 describe('Core IPC handlers', () => {
   let mainWindow: BrowserWindow
+  const userDataDir = '/tmp/userData'
+  const modelsDir = path.join(userDataDir, 'models')
+  const modelsKeepPath = path.join(modelsDir, '.keep')
+  const defaultOutputDir = path.join(userDataDir, 'outputs')
+  const defaultOutputKeepPath = path.join(defaultOutputDir, '.keep')
+  const customOutputDir = path.join('/tmp', 'custom-output')
+  const customOutputKeepPath = path.join(customOutputDir, '.keep')
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -223,26 +232,26 @@ describe('Core IPC handlers', () => {
     const openModelFolderHandler = getHandler('model:open-folder')
     await expect(openModelFolderHandler({}, undefined)).resolves.toEqual({
       ok: true,
-      path: '/tmp/userData/models'
+      path: modelsDir
     })
 
-    expect(showItemInFolderMock).toHaveBeenCalledWith('/tmp/userData/models/.keep')
+    expect(showItemInFolderMock).toHaveBeenCalledWith(modelsKeepPath)
   })
 
   it('opens configured output folder when outputDir is set', async () => {
     getSettingsMock.mockReturnValueOnce({
       ...getSettingsMock.mock.results[0]?.value,
-      outputDir: '/tmp/custom-output'
+      outputDir: customOutputDir
     })
     registerSettingsIpc()
 
     const openOutputFolderHandler = getHandler('settings:open-output-folder')
     await expect(openOutputFolderHandler({}, undefined)).resolves.toEqual({
       ok: true,
-      path: '/tmp/custom-output'
+      path: customOutputDir
     })
 
-    expect(showItemInFolderMock).toHaveBeenCalledWith('/tmp/custom-output/.keep')
+    expect(showItemInFolderMock).toHaveBeenCalledWith(customOutputKeepPath)
   })
 
   it('falls back to userData/outputs when outputDir is empty', async () => {
@@ -255,11 +264,11 @@ describe('Core IPC handlers', () => {
     const openOutputFolderHandler = getHandler('settings:open-output-folder')
     await expect(openOutputFolderHandler({}, undefined)).resolves.toEqual({
       ok: true,
-      path: '/tmp/userData/outputs'
+      path: defaultOutputDir
     })
 
     expect(app.getPath).toHaveBeenCalledWith('userData')
-    expect(showItemInFolderMock).toHaveBeenCalledWith('/tmp/userData/outputs/.keep')
+    expect(showItemInFolderMock).toHaveBeenCalledWith(defaultOutputKeepPath)
   })
 
   it('returns error response when opening folders fails', async () => {

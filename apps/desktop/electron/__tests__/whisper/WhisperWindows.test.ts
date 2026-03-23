@@ -3,9 +3,10 @@ import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
-  getWhisperWindowsDllCandidates,
+  buildWhisperWindowsCliArgs,
+  getWhisperWindowsCliCandidates,
   getWhisperWindowsRuntimeDirCandidates,
-  parseWrapperProgressLine
+  parseWhisperCppProgressLine
 } from '../../main/whisper/WhisperWindows'
 
 Object.defineProperty(process, 'resourcesPath', {
@@ -14,31 +15,40 @@ Object.defineProperty(process, 'resourcesPath', {
 })
 
 describe('WhisperWindows', () => {
-  it('parses JSON progress emitted by the Windows wrapper', () => {
+  it('parses percentage progress emitted by whisper.cpp stderr', () => {
     expect(
-      parseWrapperProgressLine(
-        '{"type":"progress","progress":42.4,"stage":"transcribing","message":"running"}',
+      parseWhisperCppProgressLine(
+        'whisper_full: progress = 42.4%',
         'task-1'
       )
     ).toEqual({
       taskId: 'task-1',
       progress: 42,
       stage: 'transcribing',
-      message: 'running'
+      message: 'whisper_full: progress = 42.4%'
     })
   })
 
-  it('falls back to percentage parsing for plain-text wrapper output', () => {
-    expect(parseWrapperProgressLine('progress: 87%', 'task-2')).toEqual({
-      taskId: 'task-2',
+  it('ignores structured JSON stderr lines', () => {
+    expect(
+      parseWhisperCppProgressLine(
+        '{"type":"progress","progress":87,"stage":"transcribing","message":"running"}',
+        'task-2'
+      )
+    ).toBeNull()
+  })
+
+  it('still parses plain percentage output', () => {
+    expect(parseWhisperCppProgressLine('progress: 87%', 'task-3')).toEqual({
+      taskId: 'task-3',
       progress: 87,
       stage: 'transcribing',
       message: 'progress: 87%'
     })
   })
 
-  it('ignores unrelated wrapper output', () => {
-    expect(parseWrapperProgressLine('initializing device', 'task-3')).toBeNull()
+  it('ignores unrelated stderr output', () => {
+    expect(parseWhisperCppProgressLine('initializing device', 'task-4')).toBeNull()
   })
 
   it('prefers packaged win resource directories when resolving runtime roots', () => {
@@ -49,15 +59,45 @@ describe('WhisperWindows', () => {
     ])
   })
 
-  it('includes env override ahead of default dll names', () => {
-    vi.stubEnv('WHISPER_WINDOWS_DLL_PATH', 'C:\\custom\\whisper.dll')
+  it('includes env override ahead of default cli paths', () => {
+    vi.stubEnv('WHISPER_WINDOWS_CLI_PATH', 'C:\\custom\\whisper-cli.exe')
 
-    expect(getWhisperWindowsDllCandidates('C:\\app\\resources\\win')).toEqual([
-      'C:\\custom\\whisper.dll',
-      path.join('C:\\app\\resources\\win', 'whisper.dll'),
-      path.join('C:\\app\\resources\\win', 'libwhisper.dll')
+    expect(getWhisperWindowsCliCandidates('C:\\app\\userData\\whisper-win')).toEqual([
+      'C:\\custom\\whisper-cli.exe',
+      path.join('C:\\app\\userData\\whisper-win', 'whisper-cli.exe'),
+      path.join('/mock/resources', 'win', 'whisper-cli.exe'),
+      path.join('/mock/resources', 'resources', 'win', 'whisper-cli.exe')
     ])
 
     vi.unstubAllEnvs()
+  })
+
+  it('builds whisper.cpp cli arguments without const-me dll flags', () => {
+    expect(
+      buildWhisperWindowsCliArgs(
+        {
+          taskId: 'task-5',
+          audioPath: 'C:\\audio\\sample.wav',
+          modelPath: 'C:\\models\\ggml-base.bin',
+          language: 'ja',
+          threads: 6,
+          onProgress: vi.fn()
+        },
+        'C:\\outputs\\sample.json',
+        'C:\\models\\ggml-base.bin'
+      )
+    ).toEqual([
+      '-m',
+      'C:\\models\\ggml-base.bin',
+      '-f',
+      'C:\\audio\\sample.wav',
+      '-l',
+      'ja',
+      '--output-json',
+      '-of',
+      'C:\\outputs\\sample',
+      '-t',
+      '6'
+    ])
   })
 })

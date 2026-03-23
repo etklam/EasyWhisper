@@ -3,7 +3,37 @@ import { SettingsManager } from '../SettingsManager'
 import Store from 'electron-store'
 import type { SettingsSchema, QueueSchema } from '@shared/settings.schema'
 
-vi.mock('electron-store')
+function createMockStore<T extends Record<string, unknown>>(defaults: T) {
+  let storeState = structuredClone(defaults)
+
+  return {
+    get(path?: string) {
+      return typeof path === 'string' ? storeState[path as keyof T] : storeState
+    },
+    set(path: string, value: unknown) {
+      storeState[path as keyof T] = value as T[keyof T]
+    },
+    reset() {
+      storeState = structuredClone(defaults)
+    },
+    get store() {
+      return storeState
+    },
+    set store(next: T) {
+      storeState = next
+    }
+  }
+}
+
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp')
+  }
+}))
+
+vi.mock('electron-store', () => ({
+  default: vi.fn()
+}))
 
 describe('SettingsManager', () => {
   let settingsManager: SettingsManager
@@ -11,30 +41,26 @@ describe('SettingsManager', () => {
   let mockQueueStore: Store<QueueSchema>
 
   beforeEach(() => {
-    mockSettingsStore = new Store<SettingsSchema>({
-      name: 'settings',
-      defaults: {
-        locale: 'en',
-        whisperModel: 'ggml-base.bin',
-        whisperThreads: 4,
-        outputDir: '',
-        outputFormats: ['txt', 'srt'],
-        maxTranscribeConcurrency: 1,
-        maxAiConcurrency: 2,
-        ytdlpAudioFormat: 'mp3',
-        ai: {
-          enabled: false,
-          model: '',
-          tasks: { correct: false, translate: false, summary: false },
-          targetLang: 'en'
-        }
+    mockSettingsStore = createMockStore<SettingsSchema>({
+      locale: 'en',
+      whisperModel: 'ggml-base.bin',
+      whisperThreads: 4,
+      outputDir: '',
+      outputFormats: ['txt', 'srt'],
+      maxTranscribeConcurrency: 1,
+      maxAiConcurrency: 2,
+      ytdlpAudioFormat: 'mp3',
+      ai: {
+        enabled: false,
+        model: '',
+        tasks: { correct: false, translate: false, summary: false },
+        targetLang: 'en'
       }
-    })
+    }) as unknown as Store<SettingsSchema>
 
-    mockQueueStore = new Store<QueueSchema>({
-      name: 'queue',
-      defaults: { items: [] }
-    })
+    mockQueueStore = createMockStore<QueueSchema>({
+      items: []
+    }) as unknown as Store<QueueSchema>
 
     vi.mocked(Store).mockImplementation((options: any) => {
       if (options.name === 'settings') {

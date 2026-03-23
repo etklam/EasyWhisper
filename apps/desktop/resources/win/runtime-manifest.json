@@ -1,0 +1,7 @@
+{
+  "platform": "win32",
+  "variant": "vulkan",
+  "files": [
+    "whisper-cli.exe"
+  ]
+}

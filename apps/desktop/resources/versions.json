@@ -1,12 +1,8 @@
 {
   "whisper-cli": {
-    "version": "pending",
+    "version": "7668414",
     "platform": "win32",
-    "notes": "Place the Const-me wrapper binary at resources/win/WhisperCLI.exe."
-  },
-  "whisper-dll": {
-    "version": "pending",
-    "platform": "win32",
-    "notes": "Place the Const-me runtime library at resources/win/whisper.dll."
+    "variant": "vulkan",
+    "notes": "Staged from C:\\Users\\cas\\Desktop\\project\\EasyWhisper\\.worktrees\\feat-windows-whispercpp-cli\\.codex-whispercpp-src\\build\\bin\\whisper-cli.exe"
   }
 }

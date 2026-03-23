@@ -13,8 +13,8 @@
     "stage:win:whisper": "node ./scripts/stage_windows_whisper_runtime.mjs",
     "package:mac:dir": "pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir",
     "package:mac": "pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir dmg",
-    "package:win:dir": "node ./scripts/clean_windows_release.mjs && pnpm run build && electron-builder --win dir",
-    "package:win": "node ./scripts/clean_windows_release.mjs && pnpm run build && electron-builder --win nsis",
+    "package:win:dir": "node ./scripts/clean_windows_release.mjs && node ./scripts/verify_windows_whisper_runtime.mjs && pnpm run build && electron-builder --win dir",
+    "package:win": "node ./scripts/clean_windows_release.mjs && node ./scripts/verify_windows_whisper_runtime.mjs && pnpm run build && electron-builder --win nsis",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest",
     "test:run": "vitest run"

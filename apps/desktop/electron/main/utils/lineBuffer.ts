@@ -3,7 +3,7 @@ export function createLineBuffer(onLine: (line: string) => void) {
 
   return {
     push(chunk: Buffer): void {
-      buffer += chunk.toString('utf8')
+      buffer += chunk.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
       const lines = buffer.split('\n')
       buffer = lines.pop() ?? ''
 
