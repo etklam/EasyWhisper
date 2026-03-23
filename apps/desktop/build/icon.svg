@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="152" y1="128" x2="872" y2="896" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16566a"/>
+      <stop offset="1" stop-color="#0f3d4c"/>
+    </linearGradient>
+    <linearGradient id="boost" x1="540" y1="320" x2="836" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22c7d6"/>
+      <stop offset="1" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="112" y="112" width="800" height="800" rx="208" fill="url(#tile)"/>
+
+  <rect x="408" y="254" width="208" height="380" rx="104" fill="#f8fafc"/>
+  <rect x="356" y="648" width="312" height="64" rx="32" fill="#f8fafc"/>
+  <rect x="464" y="712" width="96" height="120" rx="48" fill="#f8fafc"/>
+  <rect x="340" y="820" width="344" height="56" rx="28" fill="#f8fafc"/>
+
+  <path
+    d="M584 352L810 240L742 438L912 500L604 676L674 526L528 500Z"
+    fill="url(#boost)"
+  />
+</svg>

@@ -9,12 +9,13 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "icons:build": "node ./scripts/generate_app_icons.mjs",
     "stage:mac:whisper": "node ./scripts/stage_mac_whisper_runtime.mjs",
     "stage:win:whisper": "node ./scripts/stage_windows_whisper_runtime.mjs",
-    "package:mac:dir": "pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir",
-    "package:mac": "pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir dmg",
-    "package:win:dir": "node ./scripts/clean_windows_release.mjs && node ./scripts/verify_windows_whisper_runtime.mjs && pnpm run build && electron-builder --win dir",
-    "package:win": "node ./scripts/clean_windows_release.mjs && node ./scripts/verify_windows_whisper_runtime.mjs && pnpm run build && electron-builder --win nsis",
+    "package:mac:dir": "pnpm run icons:build && pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir",
+    "package:mac": "pnpm run icons:build && pnpm run stage:mac:whisper && pnpm run build && electron-builder --mac dir dmg",
+    "package:win:dir": "pnpm run icons:build && node ./scripts/clean_windows_release.mjs && node ./scripts/verify_windows_whisper_runtime.mjs && pnpm run build && electron-builder --win dir --config.win.signAndEditExecutable=false",
+    "package:win": "pnpm run icons:build && node ./scripts/clean_windows_release.mjs && node ./scripts/verify_windows_whisper_runtime.mjs && pnpm run build && electron-builder --win nsis --config.win.signAndEditExecutable=false",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest",
     "test:run": "vitest run"
@@ -31,6 +32,7 @@
     "yauzl": "^3.2.1"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.13.10",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vitest/ui": "^3.0.8",
@@ -76,6 +78,7 @@
       }
     ],
     "mac": {
+      "icon": "build/icon.icns",
       "category": "public.app-category.productivity",
       "target": [
         "dir",
@@ -83,6 +86,7 @@
       ]
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "dir",
         "nsis"

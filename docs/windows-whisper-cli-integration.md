@@ -91,6 +91,8 @@ pnpm package:win
 
 `stage:win:whisper` 会把 `whisper-cli.exe` 和同目录中的其他当前 runtime 文件一并复制进 `apps/desktop/resources/win/`，并写出 `runtime-manifest.json`；如果 source 目录里残留旧 wrapper 产物或旧 manifest，脚本会主动忽略它们。Windows packaging preflight 会再校验 manifest 中列出的 runtime 文件都已到位，并拒绝 `resources/win/` 里任何未受管理的额外文件，这样额外依赖由 staging 统一管理。
 
+当前 repo 里的 `pnpm package:win` / `pnpm package:win:dir` 也已经固定带上 `--config.win.signAndEditExecutable=false`，避免当前 Windows 打包环境在处理 `winCodeSign` helper 时卡在符号链接权限问题。
+
 ## Windows 机器上的最小验证清单
 
 1. 手动运行 `whisper-cli.exe`，确认 Vulkan build 能独立转录

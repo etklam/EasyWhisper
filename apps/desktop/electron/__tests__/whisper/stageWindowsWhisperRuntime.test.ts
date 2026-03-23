@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 const execFileAsync = promisify(execFileCallback)
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const desktopRoot = path.resolve(testDir, '../../..')
+const desktopPackageJsonPath = path.join(desktopRoot, 'package.json')
 const stageScriptPath = path.join(desktopRoot, 'scripts', 'stage_windows_whisper_runtime.mjs')
 const verifyScriptPath = path.join(desktopRoot, 'scripts', 'verify_windows_whisper_runtime.mjs')
 
@@ -27,6 +28,15 @@ afterEach(async () => {
 })
 
 describe('windows whisper runtime scripts', () => {
+  it('keeps Windows packaging scripts on the verified signAndEditExecutable workaround', async () => {
+    const packageJson = JSON.parse(await readFile(desktopPackageJsonPath, 'utf8')) as {
+      scripts?: Record<string, string>
+    }
+
+    expect(packageJson.scripts?.['package:win:dir']).toContain('--config.win.signAndEditExecutable=false')
+    expect(packageJson.scripts?.['package:win']).toContain('--config.win.signAndEditExecutable=false')
+  })
+
   it('stages whisper-cli.exe and updates versions metadata', async () => {
     const desktopSandbox = await createDesktopSandbox()
     const runtimeDir = path.join(desktopSandbox, 'resources', 'win')

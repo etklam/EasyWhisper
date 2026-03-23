@@ -96,6 +96,12 @@ pnpm package:win
 Note:
 `package:mac` currently builds the `.app` successfully, but DMG creation can still fail on some machines because `hdiutil` may return `Device not configured`.
 
+Desktop packaging now generates app icon assets from `apps/desktop/build/icon.svg` before running `electron-builder`. You can regenerate them directly with:
+
+```bash
+pnpm --filter @easywhisper/desktop run icons:build
+```
+
 ## AI Prompt Configuration
 
 AI settings are available in the Settings page.

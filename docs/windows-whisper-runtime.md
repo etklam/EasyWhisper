@@ -45,6 +45,8 @@ pnpm stage:win:whisper --source /path/to/whispercpp-vulkan-runtime --version 1.7
 - `runtime-manifest.json` 存在、格式正确，且其中列出的 runtime 文件都已实际 staged
 - `resources/win/` 中不存在 manifest 之外的未受管理 runtime 文件
 
+当前仓库中的 Windows 打包脚本额外固定带上 `--config.win.signAndEditExecutable=false`，这是为了避开这台 Windows 打包机上 `winCodeSign` helper 解压符号链接时的权限问题，并把已经验证可行的本地 workaround 固化成正式命令。
+
 ## CLI Contract
 
 当前 Electron 侧按以下参数协议调用 `whisper-cli.exe`：
