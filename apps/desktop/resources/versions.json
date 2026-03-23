@@ -1,8 +1,1 @@
-{
-  "whisper-cli": {
-    "version": "7668414",
-    "platform": "win32",
-    "variant": "vulkan",
-    "notes": "Staged from C:\\Users\\cas\\Desktop\\project\\EasyWhisper\\.worktrees\\feat-windows-whispercpp-cli\\.codex-whispercpp-src\\build\\bin\\whisper-cli.exe"
-  }
-}
+{}

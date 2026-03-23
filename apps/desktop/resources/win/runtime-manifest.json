@@ -1,6 +1,7 @@
 {
   "platform": "win32",
   "variant": "vulkan",
+  "version": "7668414",
   "files": [
     "whisper-cli.exe"
   ]

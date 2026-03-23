@@ -1,71 +1,59 @@
-import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import {
+  buildWindowsRuntimeManifest,
+  DEFAULT_WINDOWS_RUNTIME_VARIANT,
+  isWindowsRuntimeManagedFile,
+  isWindowsRuntimeRepoOwnedSupportFile
+} from './windows_runtime_manifest.mjs'
 
 const desktopRoot = process.env.EASYWHISPER_DESKTOP_ROOT
   ? path.resolve(process.env.EASYWHISPER_DESKTOP_ROOT)
   : path.resolve(fileURLToPath(new URL('..', import.meta.url)))
-const resourcesDir = path.join(desktopRoot, 'resources')
-const runtimeDir = path.join(resourcesDir, 'win')
-const versionsPath = path.join(resourcesDir, 'versions.json')
+const runtimeDir = path.join(desktopRoot, 'resources', 'win')
 const runtimeManifestPath = path.join(runtimeDir, 'runtime-manifest.json')
-const ignoredSourceRuntimeFileNames = new Set([
-  'runtime-manifest.json',
-  'whisper.dll',
-  'whispercli.exe'
-])
 
 async function main() {
   const options = parseArgs(process.argv.slice(2))
-  const cliSource = options.cliPath ?? fromSourceDir(options.sourceDir, 'whisper-cli.exe')
 
-  if (!cliSource) {
-    throw new Error('Missing runtime inputs. Provide --source <dir> or --cli <path>.')
+  if (!options.sourceDir) {
+    throw new Error('Missing runtime source. Provide --source <dir>.')
   }
 
-  await assertReadableFile(cliSource, 'whisper-cli.exe')
-  const additionalSources = await listAdditionalRuntimeFiles(options.sourceDir, cliSource)
+  if (!options.cliVersion) {
+    throw new Error('Missing runtime version. Provide --version <value>.')
+  }
+
+  await assertReadableDirectory(options.sourceDir, 'runtime source directory')
+  const stagedSources = await listManagedRuntimeSources(options.sourceDir, options.variant)
 
   await mkdir(runtimeDir, { recursive: true })
   await clearManagedRuntimeFiles()
 
-  const cliTarget = path.join(runtimeDir, 'whisper-cli.exe')
-  await copyFile(cliSource, cliTarget)
-
-  for (const sourcePath of additionalSources) {
-    await copyFile(sourcePath, path.join(runtimeDir, path.basename(sourcePath)))
+  const stagedTargets = []
+  for (const sourcePath of stagedSources) {
+    const targetPath = path.join(runtimeDir, path.basename(sourcePath))
+    await copyFile(sourcePath, targetPath)
+    stagedTargets.push(targetPath)
   }
 
-  const stagedFileNames = [
-    path.basename(cliTarget),
-    ...additionalSources.map((sourcePath) => path.basename(sourcePath))
-  ].sort((left, right) => left.localeCompare(right))
+  const manifest = buildWindowsRuntimeManifest({
+    variant: options.variant,
+    version: options.cliVersion,
+    files: stagedTargets.map((targetPath) => path.basename(targetPath))
+  })
+  await writeFile(runtimeManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
 
-  await writeRuntimeManifest(stagedFileNames)
-
-  const versions = await readVersions()
-  pruneStaleWindowsWhisperMetadata(versions)
-  versions['whisper-cli'] = {
-    version: options.cliVersion ?? 'manual',
-    platform: 'win32',
-    variant: 'vulkan',
-    notes: `Staged from ${cliSource}`
-  }
-
-  await writeFile(versionsPath, `${JSON.stringify(versions, null, 2)}\n`, 'utf8')
-
-  const stagedTargets = [
-    cliTarget,
-    ...additionalSources.map((sourcePath) => path.join(runtimeDir, path.basename(sourcePath)))
-  ]
-  process.stdout.write(`${stagedTargets.join('\n')}\n${runtimeManifestPath}\n${versionsPath}\n`)
+  process.stdout.write(`${[...stagedTargets, runtimeManifestPath].join('\n')}\n`)
 }
 
 function parseArgs(argv) {
   const options = {
     sourceDir: process.env.FOSSWHISPER_WINDOWS_WHISPER_SOURCE_DIR,
-    cliPath: process.env.FOSSWHISPER_WINDOWS_WHISPER_CLI_PATH,
-    cliVersion: process.env.FOSSWHISPER_WINDOWS_WHISPER_VERSION
+    cliVersion: process.env.FOSSWHISPER_WINDOWS_WHISPER_VERSION,
+    variant: process.env.FOSSWHISPER_WINDOWS_WHISPER_VARIANT ?? DEFAULT_WINDOWS_RUNTIME_VARIANT
   }
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -83,9 +71,6 @@ function parseArgs(argv) {
       case '--source':
         options.sourceDir = value
         break
-      case '--cli':
-        options.cliPath = value
-        break
       case '--version':
         options.cliVersion = value
         break
@@ -99,41 +84,45 @@ function parseArgs(argv) {
   return options
 }
 
-function fromSourceDir(sourceDir, fileName) {
-  return sourceDir ? path.join(sourceDir, fileName) : null
-}
+async function listManagedRuntimeSources(sourceDir, variant) {
+  const entries = await readdir(sourceDir, { withFileTypes: true })
+  const managedSources = []
 
-async function listAdditionalRuntimeFiles(sourceDir, cliSource) {
-  if (!sourceDir) {
-    return []
+  for (const entry of entries) {
+    if (!entry.isFile()) {
+      throw new Error(`Unsupported Windows runtime source entry: ${entry.name}`)
+    }
+
+    if (isWindowsRuntimeRepoOwnedSupportFile(entry.name)) {
+      continue
+    }
+
+    if (!isWindowsRuntimeManagedFile(entry.name, variant)) {
+      throw new Error(`Unsupported Windows runtime source file: ${entry.name}`)
+    }
+
+    managedSources.push(path.join(sourceDir, entry.name))
   }
 
-  const normalizedCliSource = path.resolve(cliSource)
-  const entries = await readdir(sourceDir, { withFileTypes: true })
-  const files = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.join(sourceDir, entry.name))
-    .filter((filePath) => path.resolve(filePath) !== normalizedCliSource)
-    .filter((filePath) => shouldStageAdditionalRuntimeFile(filePath))
+  managedSources.sort((left, right) => left.localeCompare(right))
 
-  files.sort((left, right) => left.localeCompare(right))
-  return files
+  if (!managedSources.some((sourcePath) => path.basename(sourcePath) === 'whisper-cli.exe')) {
+    throw new Error(`whisper-cli.exe not found in runtime source directory: ${sourceDir}`)
+  }
+
+  return managedSources
 }
 
-function shouldStageAdditionalRuntimeFile(filePath) {
-  const normalizedFileName = path.basename(filePath).toLowerCase()
-  return !ignoredSourceRuntimeFileNames.has(normalizedFileName)
-}
-
-async function assertReadableFile(filePath, label) {
+async function assertReadableDirectory(filePath, label) {
   let fileStat
   try {
     fileStat = await stat(filePath)
   } catch {
     throw new Error(`${label} not found at ${filePath}`)
   }
-  if (!fileStat.isFile()) {
-    throw new Error(`${label} is not a file: ${filePath}`)
+
+  if (!fileStat.isDirectory()) {
+    throw new Error(`${label} is not a directory: ${filePath}`)
   }
 }
 
@@ -147,44 +136,6 @@ async function clearManagedRuntimeFiles() {
 
     await rm(path.join(runtimeDir, entry.name), { recursive: true, force: true })
   }))
-}
-
-async function readVersions() {
-  try {
-    const raw = await readFile(versionsPath, 'utf8')
-    return JSON.parse(raw)
-  } catch {
-    return {}
-  }
-}
-
-function pruneStaleWindowsWhisperMetadata(versions) {
-  for (const [key, value] of Object.entries(versions)) {
-    if (key === 'whisper-cli') {
-      continue
-    }
-    if (!key.startsWith('whisper')) {
-      continue
-    }
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      continue
-    }
-    if (value.platform !== 'win32') {
-      continue
-    }
-
-    delete versions[key]
-  }
-}
-
-async function writeRuntimeManifest(files) {
-  const manifest = {
-    platform: 'win32',
-    variant: 'vulkan',
-    files
-  }
-
-  await writeFile(runtimeManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
 }
 
 await main()

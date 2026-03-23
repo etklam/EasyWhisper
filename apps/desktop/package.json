@@ -66,10 +66,6 @@
         ]
       },
       {
-        "from": "resources/versions.json",
-        "to": "versions.json"
-      },
-      {
         "from": "resources/win",
         "to": "win",
         "filter": [

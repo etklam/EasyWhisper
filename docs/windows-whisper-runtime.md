@@ -1,6 +1,6 @@
 # Windows Whisper Runtime
 
-当前 Windows 路线直接使用 `whisper.cpp` CLI，MVP 先锁定 Vulkan build。
+当前 Windows 路线直接使用 `whisper.cpp` CLI。Task 1 先把 Windows runtime packaging contract 收敛到单一 manifest，当前 staged runtime 仍锁定 Vulkan build。
 
 补充说明请同时参考：
 
@@ -11,14 +11,23 @@
 Windows runtime 资源应放在：
 
 - `apps/desktop/resources/win/whisper-cli.exe`
-- 与同一份 build 搭配的其他 runtime 文件（如额外 DLL）可直接并排放在同目录
-- `apps/desktop/resources/win/runtime-manifest.json` 由 staging script 生成，用来记录本次受管理的 runtime 文件清单
+- 与同一份 build 搭配的其他 runtime 文件，例如必要 DLL
+- `apps/desktop/resources/win/runtime-manifest.json`
 
-打包后会进入：
+`runtime-manifest.json` 是 Windows runtime 唯一的 metadata contract，至少记录：
+
+- `platform`
+- `variant`
+- `version`
+- `files`
+
+打包后只会进入：
 
 - `resources/win/whisper-cli.exe`
 - `resources/win/<extra-runtime-files>`
 - `resources/win/runtime-manifest.json`
+
+`apps/desktop/resources/versions.json` 不再作为 Windows whisper runtime packaging / preflight contract 的一部分，也不会被打进 Windows 安装产物。
 
 ## Staging
 
@@ -31,18 +40,19 @@ pnpm stage:win:whisper --source /path/to/whispercpp-vulkan-runtime --version 1.7
 可选环境变量：
 
 - `FOSSWHISPER_WINDOWS_WHISPER_SOURCE_DIR`
-- `FOSSWHISPER_WINDOWS_WHISPER_CLI_PATH`
 - `FOSSWHISPER_WINDOWS_WHISPER_VERSION`
 
-`--source` 会复制 `whisper-cli.exe`，并把同目录中的其他当前 runtime 文件一并带进 `apps/desktop/resources/win/`。脚本同时会写出 `runtime-manifest.json`，记录受管理的 runtime 文件，让额外依赖由 staging 管理，而不是写死在应用逻辑里。
+staging 现在只接受一份 runtime bundle 目录作为输入。脚本会从 `--source` 目录读取 `whisper-cli.exe`，并把同目录中符合当前受管理规则的 runtime 文件一并复制进 `apps/desktop/resources/win/`。
 
-如果 source 目录里还混着旧的 wrapper 产物或旧的 `runtime-manifest.json`，staging script 会主动忽略这些文件，并按当前 CLI runtime 重新生成 manifest。
+脚本会重新生成 `runtime-manifest.json`，把本次 staged runtime 的 `version` 与受管理文件清单写进同一份 manifest。source 目录中的 `README.md` 与旧的 `runtime-manifest.json` 会被视为 repo-owned support file，因此不会被复制；其他不属于当前 runtime allowlist 的 top-level file 会直接让 staging 失败，避免把额外 artifact 静默打进 installer。
+
+## Packaging Preflight
 
 打包前的 `pnpm package:win` / `pnpm package:win:dir` preflight 会检查：
 
 - `whisper-cli.exe` 存在
-- `versions.json` 中 `whisper-cli` 记录为 `platform: win32`、`variant: vulkan`
-- `runtime-manifest.json` 存在、格式正确，且其中列出的 runtime 文件都已实际 staged
+- `runtime-manifest.json` 存在、格式正确，并且已经记录当前 staged runtime 的 `version`
+- `runtime-manifest.json` 中列出的 runtime 文件都已实际 staged
 - `resources/win/` 中不存在 manifest 之外的未受管理 runtime 文件
 
 当前仓库中的 Windows 打包脚本额外固定带上 `--config.win.signAndEditExecutable=false`，这是为了避开这台 Windows 打包机上 `winCodeSign` helper 解压符号链接时的权限问题，并把已经验证可行的本地 workaround 固化成正式命令。
@@ -69,5 +79,7 @@ pnpm stage:win:whisper --source /path/to/whispercpp-vulkan-runtime --version 1.7
 ## 验收重点
 
 - `whisper-cli.exe` 可在 Windows Vulkan 机器上独立跑通
-- `pnpm stage:win:whisper` 只要求当前 Vulkan CLI runtime 所需文件
+- `pnpm stage:win:whisper` 只接受单一 runtime bundle 目录，不再混用 `--cli` 与 `--source`
+- `pnpm stage:win:whisper` 只允许当前 Vulkan CLI runtime 所需文件进入 `resources/win/`
+- Windows runtime metadata 只以 `runtime-manifest.json` 为准
 - `apps/desktop/electron/main/whisper/WhisperWindows.ts` 只解析 `whisper.cpp` CLI 契约

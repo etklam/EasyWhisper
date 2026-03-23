@@ -1,6 +1,6 @@
 # Windows Whisper CLI Integration
 
-这份文档现在对应的是 `whisper.cpp` Vulkan CLI 集成，聚焦当前的单一 CLI 路线。
+这份文档现在对应的是 `whisper.cpp` Vulkan CLI 集成，并反映 Task 1 之后的单一 manifest packaging contract。
 
 相关背景文档：
 
@@ -12,10 +12,10 @@
 
 - Windows runtime 会优先从打包产物中的 `resources/win/` 查找 `whisper-cli.exe`
 - `WhisperWindows.ts` 直接调用 `whisper.cpp` CLI
-- 打包配置会把 `apps/desktop/resources/win/` 和 `apps/desktop/resources/versions.json` 带进 Windows 安装产物
+- 打包配置只会把 `apps/desktop/resources/win/` 带进 Windows 安装产物
 - 已存在 staging 脚本：
   - `pnpm stage:win:whisper --source <dir> --version <ver>`
-- staging 结果会额外写出 `apps/desktop/resources/win/runtime-manifest.json`，记录受管理的 runtime 文件
+- staging 结果会写出 `apps/desktop/resources/win/runtime-manifest.json`，作为 Windows runtime 唯一的 packaging metadata contract
 
 当前还没有完成的部分是：在真实 Windows Vulkan 机器上完成 build、验证运行，并补齐可能的额外 runtime 依赖。
 
@@ -26,8 +26,8 @@
 - `apps/desktop/electron/main/whisper/WhisperWindows.ts`
 - `apps/desktop/electron/main/whisper/runtime.ts`
 - `apps/desktop/scripts/stage_windows_whisper_runtime.mjs`
+- `apps/desktop/scripts/verify_windows_whisper_runtime.mjs`
 - `apps/desktop/resources/win/README.md`
-- `apps/desktop/resources/versions.json`
 
 关键行为：
 
@@ -80,6 +80,8 @@ Electron 会解析其中的 `%` 百分比，不再依赖旧的结构化 JSON `st
 artifacts/
   whisper-cli.exe
   <extra-runtime-files>
+  README.md                # optional; ignored by staging
+  runtime-manifest.json    # optional stale file; ignored by staging
 ```
 
 然后在仓库根目录执行：
@@ -89,7 +91,9 @@ pnpm stage:win:whisper --source C:\path\to\artifacts --version 1.7.3
 pnpm package:win
 ```
 
-`stage:win:whisper` 会把 `whisper-cli.exe` 和同目录中的其他当前 runtime 文件一并复制进 `apps/desktop/resources/win/`，并写出 `runtime-manifest.json`；如果 source 目录里残留旧 wrapper 产物或旧 manifest，脚本会主动忽略它们。Windows packaging preflight 会再校验 manifest 中列出的 runtime 文件都已到位，并拒绝 `resources/win/` 里任何未受管理的额外文件，这样额外依赖由 staging 统一管理。
+`stage:win:whisper` 现在只接受一份 runtime bundle 目录，不再支援把 `whisper-cli.exe` 与其他 DLL 拆成混合来源。脚本会把 `whisper-cli.exe` 与 allowlist 允许的当前 runtime 文件复制进 `apps/desktop/resources/win/`，并重新生成 `runtime-manifest.json`；source 目录中的 `README.md` 与旧 `runtime-manifest.json` 会被忽略，其他未知 top-level file 会直接让 staging 失败。
+
+Windows packaging preflight 只会校验 `runtime-manifest.json` 与实际 staged files，不再依赖 `versions.json`，并会拒绝 `resources/win/` 里任何未受管理的额外文件。这样 Windows runtime metadata 的 source of truth 被收敛到单一 manifest。
 
 当前 repo 里的 `pnpm package:win` / `pnpm package:win:dir` 也已经固定带上 `--config.win.signAndEditExecutable=false`，避免当前 Windows 打包环境在处理 `winCodeSign` helper 时卡在符号链接权限问题。
 
