@@ -11,7 +11,7 @@ type PromptBuilders = {
 // 預設模板（內建，隨 app 更新）
 const DEFAULT_PROMPTS: PromptBuilders = {
   translate: (text: string, targetLang: string) =>
-    `Translate the following text into ${targetLang}. Output only the translation, no explanation:\n\n${text}`,
+    `Translate the following text into ${targetLang}. The input may contain multiple paragraphs or segments. Translate everything in one pass, preserve the original order and line breaks as much as possible, and output only the translation with no explanation:\n\n${text}`,
 
   summary: (text: string) =>
     `Provide a concise summary of the following transcript. List key points:\n\n${text}`,

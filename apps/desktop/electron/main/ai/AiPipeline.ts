@@ -15,7 +15,8 @@ const DEFAULT_OPTIONS: ResolvedPipelineOptions = {
   chunkSize: 4000,
   timeout: 30000,
   contextWindow: 4000,
-  outputTokenBudget: 1000
+  outputTokenBudget: 1000,
+  promptTokenBudget: 500
 }
 
 export class AiPipeline {
@@ -132,7 +133,10 @@ export class AiPipeline {
 
   private async processTask(task: AiTask): Promise<AiRunResult> {
     const promptFn = getPrompt(task.taskType, task.customPrompts)
-    const availableContextWindow = Math.max(1, this.options.contextWindow - this.options.outputTokenBudget)
+    const availableContextWindow = Math.max(
+      1,
+      this.options.contextWindow - this.options.outputTokenBudget - this.options.promptTokenBudget
+    )
     const effectiveChunkSize =
       task.batchMode === false
         ? task.chunkSize ?? this.options.chunkSize

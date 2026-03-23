@@ -100,18 +100,6 @@ export const useAiStore = defineStore('ai', {
         })
       )
 
-      this.unsubscribeHandles.push(
-        window.fosswhisper.onAiResult((result) => {
-          this.handleResultEvent(result)
-        })
-      )
-
-      this.unsubscribeHandles.push(
-        window.fosswhisper.onAiError((result) => {
-          this.handleResultEvent(result)
-        })
-      )
-
       this.listenersBound = true
     },
 
@@ -195,6 +183,7 @@ export const useAiStore = defineStore('ai', {
         workflow.error = '已取消'
         workflow.completedAt = new Date().toISOString()
         this.trimRetainedWorkflows()
+        this.pumpQueue()
       }
     },
 
@@ -258,7 +247,7 @@ export const useAiStore = defineStore('ai', {
             text: workflow.currentText,
             taskType: step.taskType,
             targetLang: workflow.targetLang,
-            batchMode: step.taskType !== 'summary',
+            batchMode: true,
             customPrompts: workflow.customPrompts
           })
 
@@ -294,7 +283,14 @@ export const useAiStore = defineStore('ai', {
         workflow.completedAt = new Date().toISOString()
         workflow.currentStep = undefined
         this.trimRetainedWorkflows()
-        notifyAiFailed(workflow.queueTaskId, workflow.error)
+
+        // 部分成功：保存已完成的步驟結果
+        if (Object.keys(workflow.results).length > 0) {
+          notifyAiCompleted(workflow.queueTaskId, workflow.results)
+        } else {
+          notifyAiFailed(workflow.queueTaskId, workflow.error)
+        }
+
         void this.refreshStatus()
       } finally {
         this.pumpQueue()
@@ -304,6 +300,11 @@ export const useAiStore = defineStore('ai', {
     handleProgressEvent(event: AiProgressEvent) {
       const workflow = this.findWorkflowByExecutionTaskId(event.taskId)
       if (!workflow) {
+        return
+      }
+
+      // 忽略已完成或失敗 workflow 的事件
+      if (workflow.status === 'done' || workflow.status === 'error') {
         return
       }
 
@@ -318,31 +319,6 @@ export const useAiStore = defineStore('ai', {
       workflow.currentStep = event.taskType
       workflow.progress = calculateWorkflowProgress(workflow.steps)
       notifyAiProgress(workflow.queueTaskId, workflow.progress, event.taskType)
-    },
-
-    handleResultEvent(result: AiRunResult) {
-      const workflow = this.findWorkflowByExecutionTaskId(result.taskId)
-      if (!workflow) {
-        return
-      }
-
-      const step = workflow.steps.find((item) => item.taskType === result.taskType)
-      if (!step) {
-        return
-      }
-
-      if ('error' in result) {
-        step.status = 'error'
-        step.error = result.error
-        workflow.error = result.error
-      } else if ('skipped' in result) {
-        step.status = 'skipped'
-      } else {
-        step.status = 'done'
-        step.progress = 100
-      }
-
-      workflow.progress = calculateWorkflowProgress(workflow.steps)
     },
 
     findWorkflow(workflowId: string): AiWorkflowTask | undefined {
@@ -410,14 +386,22 @@ function calculateWorkflowProgress(steps: AiWorkflowStep[]): number {
     return 100
   }
 
-  const total = steps.reduce((sum, step) => {
-    if (step.status === 'done' || step.status === 'skipped') {
-      return sum + 100
-    }
-    return sum + step.progress
-  }, 0)
+  // 計算實際要執行的步驟數
+  const enabledSteps = steps.filter((s) => s.status !== 'skipped')
+  if (enabledSteps.length === 0) {
+    return 100 // 沒有步驟要執行，算完成
+  }
 
-  return clampProgress(total / steps.length)
+  // 計算已完成/進度
+  const completedCount = enabledSteps.filter((s) => s.status === 'done').length
+  const runningProgress = enabledSteps
+    .filter((s) => s.status === 'running')
+    .reduce((sum, s) => sum + s.progress, 0)
+
+  // 平均進度 = (已完成數 * 100 + 執行中進度) / 啟用步驟數
+  const total = completedCount * 100 + runningProgress
+
+  return clampProgress(total / enabledSteps.length)
 }
 
 function trimTerminalWorkflows(workflows: AiWorkflowTask[], maxTerminalWorkflows: number): AiWorkflowTask[] {

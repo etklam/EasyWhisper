@@ -588,6 +588,15 @@ export const useQueueStore = defineStore('queue', {
       item.status = 'done'
       item.message = 'queue.messages.transcriptionAiComplete'
       item.messageParams = undefined
+
+      // Save AI results to separate files
+      if (item.outputPath && Object.keys(results).length > 0) {
+        void this.saveAiResults(item.outputPath, results)
+      }
+
+      // 完成後清理對應的 workflow，避免累積
+      clearAiWorkflow(taskId)
+
       this.trimRetainedTasks()
     },
 
@@ -597,11 +606,24 @@ export const useQueueStore = defineStore('queue', {
         return
       }
 
-      item.status = 'error'
-      item.error = error
       item.aiError = error
       item.message = 'queue.messages.aiFailed'
       item.messageParams = { error }
+      item.aiProgress = 0
+      item.aiCurrentStep = undefined
+
+      // 如果 transcription 已完成，保持 done 狀態
+      // 否則才標記整個任務為失敗
+      if (item.transcript) {
+        item.status = 'done'
+      } else {
+        item.status = 'error'
+        item.error = error
+      }
+
+      // 失敗後也清理對應的 workflow
+      clearAiWorkflow(taskId)
+
       this.trimRetainedTasks()
     },
 
@@ -643,6 +665,14 @@ export const useQueueStore = defineStore('queue', {
     shouldRunAi(): boolean {
       const settings = this.getSettings()
       return settings.aiEnabled && getEnabledAiTasks(settings).length > 0
+    },
+
+    async saveAiResults(outputPath: string, results: Partial<Record<AiTaskType, string>>) {
+      try {
+        await window.fosswhisper.saveAiResults({ outputPath, results })
+      } catch (error) {
+        console.error('Failed to save AI results:', error)
+      }
     }
   }
 })

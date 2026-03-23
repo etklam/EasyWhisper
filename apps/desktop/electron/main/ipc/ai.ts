@@ -1,27 +1,25 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import { randomUUID } from 'node:crypto'
+import { writeFile } from 'node:fs/promises'
+import { join, dirname } from 'node:path'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type {
   AiErrorResult,
+  AiPipelineStatsResponse,
   AiRunPayload,
   AiRunResult,
+  AiSaveResultsPayload,
+  AiSaveResultsResponse,
   AiStatusResponse,
   AiStopPayload,
   AiStopResponse
 } from '@shared/types'
-import { AiPipeline } from '../ai/AiPipeline'
+import { getPipelineManager } from '../ai/PipelineManager'
+import type { AiSettings } from '../ai/types'
 import { checkOllama, listModels } from '../ai/OllamaClient'
 
 const activeTaskControllers = new Map<string, AbortController>()
-
-function createPipeline(model: string): AiPipeline {
-  return new AiPipeline(model, {
-    correct: true,
-    translate: true,
-    summary: true
-  })
-}
 
 export function registerAiIpc(_mainWindow: BrowserWindow): void {
   if (typeof ipcMain.removeHandler === 'function') {
@@ -29,7 +27,12 @@ export function registerAiIpc(_mainWindow: BrowserWindow): void {
   }
   ipcMain.handle(IPC_CHANNELS.AI_RUN, async (_event, payload: AiRunPayload): Promise<AiRunResult> => {
     const taskId = payload.id ?? randomUUID()
-    const pipeline = createPipeline(payload.model ?? 'llama2')
+    const pipelineManager = getPipelineManager()
+    const pipeline = pipelineManager.getPipeline(payload.model ?? 'llama2', {
+      correct: true,
+      translate: true,
+      summary: true
+    })
     const controller = new AbortController()
     activeTaskControllers.set(taskId, controller)
 
@@ -45,8 +48,7 @@ export function registerAiIpc(_mainWindow: BrowserWindow): void {
             _mainWindow.webContents.send(IPC_CHANNELS.AI_PROGRESS, progress)
           },
           onResult: (result) => {
-            const channel = 'error' in result ? IPC_CHANNELS.AI_ERROR : IPC_CHANNELS.AI_RESULT
-            _mainWindow.webContents.send(channel, result)
+            // 只通過返回值傳遞結果，不再發送 event
             resolve(result)
           }
         })
@@ -58,7 +60,7 @@ export function registerAiIpc(_mainWindow: BrowserWindow): void {
         error: error instanceof Error ? error.message : String(error),
         detail: error instanceof Error ? error.message : String(error)
       }
-      _mainWindow.webContents.send(IPC_CHANNELS.AI_ERROR, result)
+      // 錯誤也不發 event，只返回
       return result
     } finally {
       activeTaskControllers.delete(taskId)
@@ -106,5 +108,38 @@ export function registerAiIpc(_mainWindow: BrowserWindow): void {
       return []
     }
     return listModels()
+  })
+
+  if (typeof ipcMain.removeHandler === 'function') {
+    ipcMain.removeHandler(IPC_CHANNELS.AI_SAVE_RESULTS)
+  }
+  ipcMain.handle(
+    IPC_CHANNELS.AI_SAVE_RESULTS,
+    async (_event, payload: AiSaveResultsPayload): Promise<AiSaveResultsResponse> => {
+      const savedPaths: Array<{ task: string; path: string }> = []
+      const basePath = payload.outputPath.replace(/\.[^.]+$/, '')
+
+      for (const [task, result] of Object.entries(payload.results)) {
+        if (!result) continue
+
+        const outputPath = `${basePath}.${task}.txt`
+        try {
+          await writeFile(outputPath, result, 'utf8')
+          savedPaths.push({ task, path: outputPath })
+        } catch (error) {
+          console.error(`Failed to save AI result for ${task}:`, error)
+        }
+      }
+
+      return { savedPaths }
+    }
+  )
+
+  if (typeof ipcMain.removeHandler === 'function') {
+    ipcMain.removeHandler(IPC_CHANNELS.AI_GET_PIPELINE_STATS)
+  }
+  ipcMain.handle(IPC_CHANNELS.AI_GET_PIPELINE_STATS, async (): Promise<AiPipelineStatsResponse> => {
+    const pipelineManager = getPipelineManager()
+    return pipelineManager.getStats()
   })
 }

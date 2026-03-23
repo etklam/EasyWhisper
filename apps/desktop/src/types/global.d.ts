@@ -1,7 +1,10 @@
 import type {
+  AiPipelineStatsResponse,
   AiProgressEvent,
   AiRunPayload,
   AiRunResult,
+  AiSaveResultsPayload,
+  AiSaveResultsResponse,
   AiStopPayload,
   AiStopResponse,
   AiStatusResponse,
@@ -44,6 +47,8 @@ declare global {
       stopAi: (payload: AiStopPayload) => Promise<AiStopResponse>
       getAiStatus: () => Promise<AiStatusResponse>
       listAiModels: () => Promise<string[]>
+      saveAiResults: (payload: AiSaveResultsPayload) => Promise<AiSaveResultsResponse>
+      getAiPipelineStats: () => Promise<AiPipelineStatsResponse>
       getSettings: () => Promise<WorkflowSettings>
       setSettings: (settings: Partial<WorkflowSettings>) => Promise<WorkflowSettings>
       openOutputFolder: () => Promise<OpenFolderResponse>

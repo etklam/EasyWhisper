@@ -40,6 +40,7 @@ export interface PipelineOptions {
   timeout?: number
   contextWindow?: number
   outputTokenBudget?: number
+  promptTokenBudget?: number
 }
 
 export interface ResolvedPipelineOptions {
@@ -48,6 +49,7 @@ export interface ResolvedPipelineOptions {
   timeout: number
   contextWindow: number
   outputTokenBudget: number
+  promptTokenBudget: number
 }
 
 export interface OllamaModel {

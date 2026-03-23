@@ -181,6 +181,20 @@ export interface AiStatusResponse {
   queueLength: number
 }
 
+export interface AiSaveResultsPayload {
+  outputPath: string
+  results: Partial<Record<AiTaskType, string>>
+}
+
+export interface AiSaveResultsResponse {
+  savedPaths: Array<{ task: AiTaskType; path: string }>
+}
+
+export interface AiPipelineStatsResponse {
+  managedPipelines: number
+  models: string[]
+}
+
 export interface YtDlpStartPayload {
   taskId?: string
   url: string

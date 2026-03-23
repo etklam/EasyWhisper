@@ -18,6 +18,8 @@ export const IPC_CHANNELS = {
   AI_STOP: 'ai:stop',
   AI_GET_STATUS: 'ai:getStatus',
   AI_LIST_MODELS: 'ai:listModels',
+  AI_SAVE_RESULTS: 'ai:saveResults',
+  AI_GET_PIPELINE_STATS: 'ai:getPipelineStats',
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
   SETTINGS_OPEN_OUTPUT_FOLDER: 'settings:open-output-folder',

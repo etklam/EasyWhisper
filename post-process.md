@@ -39,7 +39,7 @@
 5. `aiStore` 以 workflow 形式管理多步驟 AI 任務，按順序執行 `correct -> translate -> summary`。
 6. 每個步驟都透過 preload API 呼叫 `window.fosswhisper.runAi()`。
 7. main process 的 `ipc/ai.ts` 建立 `AiPipeline`，呼叫 Ollama，並透過 IPC event 回傳 progress / result / error。
-8. `aiStore` 更新 workflow 狀態，同時透過 coordinator 回寫 queue item 的 AI 進度與結果。
+8. `aiStore` 更新 workflow 狀態，同時透過 coordinator 回寫 queue item 的 AI 進度；workflow 成功完成後，再一次性回寫 AI 結果。
 9. queue item 進入 `done` 或 `error`，UI 顯示 AI 結果預覽。
 
 ## 設定來源
@@ -157,9 +157,10 @@ window.fosswhisper.runAi({
 
 目前資料傳遞規則是：
 
-- `correct` 讀 `sourceText`
-- `translate` 讀前一步更新後的 `currentText`
-- `summary` 讀前一步更新後的 `currentText`
+- 每個 step 實際上都讀 `currentText`
+- workflow 初始化時 `currentText === sourceText`
+- 因此第一步 `correct` 會拿到原始 transcript
+- `translate` / `summary` 則讀前一步更新後的 `currentText`
 
 所以現在是明確的串接式 post-processing：
 
@@ -300,6 +301,8 @@ AI 結果最後會分成兩條路更新：
 
 但它不負責把 step 的文字結果寫進 `workflow.results`，也不負責更新串接用的 `currentText`。
 
+另外，`runWorkflow()` 在 `await runAi()` resolve 後，會把成功 step 的文字結果寫進 `workflow.results`，並在非 `summary` step 後更新串接用的 `currentText`。
+
 這份狀態主要給 `AiPanel.vue` 顯示，用來看 workflow 細節。
 
 ### 2. 更新 queue item
@@ -314,6 +317,11 @@ queue store 會更新：
 - `item.aiResults`
 - `item.status`
 - `item.message`
+
+其中：
+
+- `item.aiProgress` / `item.aiCurrentStep` 會在 workflow 執行期間持續更新
+- `item.aiResults` 會在整條 workflow 成功完成後一次寫入
 
 這份狀態主要給 queue UI 顯示，用來看整體任務進度。
 
@@ -397,36 +405,172 @@ queue store 不直接依賴 `aiStore` 的實作細節，而是透過 `aiWorkflow
 
 回到 renderer。
 
+## 架構設計決策
+
+### Workflow Orchestration 位置
+
+**選擇**：Workflow orchestration 在 **renderer** 端
+
+**理由**：
+1. **UI 狀態緊密結合**：workflow 涉及進度顯示、用戶取消、步驟切換等 UI 交互，在 renderer 處理更直觀
+2. **當前只有單窗口場景**：沒有多窗口需求，不需要全局共享 queue
+3. **簡化 main process 職責**：main process 只負責執行單一 AI task，不負責排程和狀態管理
+4. **職責清晰**：renderer = orchestration + UI state，main = execution + resource management
+
+**優化**：
+- 新增 `PipelineManager` 重用 `AiPipeline` 實例，避免重複初始化
+- 使用 `WeakRef` 允許 GC 自動清理未使用的 pipeline
+- 提供 `getAiPipelineStats()` API 查看管理狀態
+
+**未來擴展路徑**：
+- 如果需要**多窗口支持** → 將 workflow queue 移到 main process，通過 IPC 同步狀態
+- 如果需要**Web UI** → 實現獨立的 queue service（可能用 WebSocket 推送進度）
+- 如果需要**CLI 模式** → 實現 headless mode，直接使用 `AiPipeline` 而不依賴 renderer
+
+---
+
+### 狀態更新模式
+
+**選擇**：**Hybrid** - 結果用 invoke 返回值，progress 用 event stream
+
+**理由**：
+1. **結果需要可靠性**：`invoke()` 返回值確保不丟失，且順序有保障
+2. **進度需要實時性**：event stream 提供實時 progress 更新，用戶體驗更好
+3. **避免雙重來源**：移除 `onAiResult`/`onAiError` 事件監聽，結果只有一個來源
+4. **已處理競態條件**：完成後忽略延遲事件，防止狀態回滾
+
+**架構**：
+```
+Renderer                         Main Process
+  │                                │
+  ├─ runAi() ──────────────────▶  ├─ AiPipeline.process()
+  │   invoke                      │   ├─ onResult ──▶ resolve(return)
+  │                               │   └─ onProgress ─▶ send(event)
+  │◀─── Promise<result>           │
+  │                               │
+  ├─ onAiProgress ◀──────── event  │
+  │   listener
+```
+
+---
+
+### AI 結果持久化
+
+**選擇**：**獨立檔案** - 每個 AI task 生成單獨的 `.txt` 檔案
+
+**格式**：
+```
+video.mp4
+video.txt           (原始 transcription)
+video.correct.txt   (校正結果)
+video.translate.txt (翻譯結果)
+video.summary.txt   (摘要結果)
+```
+
+**理由**：
+1. **用戶友好**：可直接打開查看，不需要特殊工具
+2. **靈活性**：用戶可以單獨刪除或分享某個結果
+3. **與現有格式一致**：和 `.txt` / `.srt` / `.vtt` 等輸出格式並列
+4. **便於版本控制**：文本 diff 清晰
+
+**未來擴展**：可選添加 `.ai.json` 整合所有結果，便於程式化處理
+
+---
+
 ## 目前已知的 review points
 
 以下是依照目前實作整理出的 review 重點，不是新的設計提案：
 
-### 1. Summary 對長文本的保護不足
+### ✅ 1. Summary 對長文本的保護不足（已解決）
 
-目前 summary 是用 `batchMode: false` 呼叫，容易直接吃整段長文本。
+**問題**：Summary 用 `batchMode: false` 呼叫，不會走 `correct` / `translate` 那種 chunked batch strategy；對長文本的保護因此較弱。
 
-### 2. AI 結果目前偏向 UI/session state
+**解決方案**：修改 `ai.ts:261`，將 `batchMode: true` 套用到所有步驟，包括 summary。
 
-AI 輸出沒有正式落地成 artifact，重啟 app 後不保證保留。
+### ✅ 2. AI 結果目前偏向 UI/session state（已解決）
 
-### 3. AI failure 會把整個 queue item 打成失敗
+**問題**：AI 輸出沒有正式落地成 artifact，重啟 app 後不保證保留。
 
-即使 transcription 已完成，只要 AI step 出錯，整個任務仍會進入 `error`。
+**解決方案**：新增 `AI_SAVE_RESULTS` IPC channel，在 `completeAiTask()` 時將結果存成獨立檔案：
+- `{stem}.correct.txt`
+- `{stem}.translate.txt`
+- `{stem}.summary.txt`
+
+### ✅ 3. AI failure 會把整個 queue item 打成失敗（已解決）
+
+**問題**：即使 transcription 已完成，只要 AI step 出錯，整個任務仍會進入 `error`。
+
+**解決方案**：修改 `queue.ts:failAiTask()`，讓 transcription 完成但 AI 失敗時保持 `done` 狀態，只記錄 `aiError`。
 
 ### 4. Main process 沒有真正的 global AI queue
 
 `AiPipeline` 雖有 concurrency / slot queue，但 `AI_RUN` 每次都建立新 instance，實際的 workflow queue 仍在 renderer。
 
-### 5. 狀態更新存在雙寫風格
+### ✅ 5. 狀態更新存在雙寫風格（已解決）
 
-renderer 一邊等 `runAi()` return，一邊也聽 `onAiResult/onAiError` 事件，狀態來源有重疊。
+**問題**：renderer 一邊等 `runAi()` return，一邊也聽 `onAiResult/onAiError` 事件，狀態來源有重疊。
+
+**解決方案**：保留 event stream 只用於 progress 更新，移除 onAiResult/onAiError 事件監聽。結果統一通過 `invoke()` 返回值獲取，避免雙重數據源。
+
+### ✅ 6. 部分 AI 成功的結果無法存取（已解決）
+
+**問題**：如果 workflow 執行 `correct -> translate -> summary` 但最後一步失敗，`workflow.results` 會保留已完成步驟的結果，但 `queueStore.items[].aiResults` 永遠是空的（只有完全成功才寫入）。
+
+**解決方案**：修改 `ai.ts:runWorkflow()` 的錯誤處理，當有部分結果時也調用 `notifyAiCompleted()`，讓已完成的步驟結果可以被保存和存取。
+
+### ✅ 7. 進度計算對 skipped 步驟過度樂觀（已解決）
+
+**問題**：skipped 的步驟被視為 100% 完成，導致啟用少量步驟時進度顯示不準確。
+
+**解決方案**：修改 `calculateWorkflowProgress()` 只計算啟用的步驟，進度反映實際執行的工作量。
+
+### ✅ 8. 狀態更新存在潛在競態條件（已解決）
+
+**問題**：`runWorkflow()` 完成與延遲的 IPC events 之間可能導致狀態回滾。如果延遲的 `onAiResult` 事件在 `notifyAiCompleted()` 之後到達，可能導致 queue item 從 `done` 回滾到 `ai`。
+
+**解決方案**：在 `handleResultEvent()` 和 `handleProgressEvent()` 中添加狀態檢查，忽略已完成或失敗 workflow 的事件。
+
+### ✅ 9. 取消 pending workflow 不觸發隊列（已解決）
+
+**問題**：`cancelWorkflow()` 將 pending workflow 標記為 error 後沒有調用 `pumpQueue()`，後續的 pending workflow 不會自動開始執行。
+
+**解決方案**：在 `cancelWorkflow()` 的 pending workflow 處理中添加 `this.pumpQueue()` 調用。
+
+### ✅ 10. Workflow 清理只發生在 retry 時（已解決）
+
+**問題**：`clearWorkflow()` 只在 `retryTask()` 時被調用。如果用戶從不點 retry，舊 workflow 會一直保留直到 `trimRetainedWorkflows()` 清理（上限 100 個）。
+
+**解決方案**：在 `completeAiTask()` 和 `failAiTask()` 中自動調用 `clearAiWorkflow()`，完成或失敗後立即清理對應的 workflow。
+
+### ✅ 11. Prompt 長度未從 context window 扣除（已解決）
+
+**問題**：chunking 計算時未考慮 prompt template 本身的 token 消耗。例如：
+- context window = 8000
+- output budget = 1000
+- prompt template = 500 tokens
+- effective chunk size = 7000
+- **實際輸入** = 7000 (chunk) + 500 (prompt) = 7500
+
+可能超出模型的實際 context window 限制。
+
+**解決方案**：在 `PipelineOptions` 中新增 `promptTokenBudget` 配置（預設 500），在計算 `availableContextWindow` 時一併扣除。
 
 ## 建議 review 時優先看什麼
 
-如果要 review 這套架構，建議先聚焦這幾題：
+✅ **所有問題都已解決或做出架構決策**
 
-1. AI 結果是否應該成為正式輸出檔？
-2. AI failure 是否應該讓整個 queue item fail？
-3. workflow orchestration 應該留在 renderer，還是收回 main process？
-4. summary 長文本是否需要和 correct / translate 一樣走 chunking 策略？
-5. `invoke + event stream` 雙軌回傳是否值得收斂成單一模式？
+### 優先級高（影響用戶體驗）
+1. ~~AI 結果是否應該成為正式輸出檔？~~ **✅ 已解決**（#2）
+2. ~~AI failure 是否應該讓整個 queue item fail？~~ **✅ 已解決**（#3）
+3. ~~部分成功時是否應該保留已完成的步驟結果？~~ **✅ 已解決**（#6）
+
+### 優先級中（影響系統穩定性）
+4. ~~workflow orchestration 應該留在 renderer，還是收回 main process？~~ **✅ 已決策**（#4）
+5. ~~狀態更新的雙寫風格是否要收斂？~~ **✅ 已解決**（#5）
+6. ~~如何避免進度更新的競態條件？~~ **✅ 已解決**（#8）
+7. ~~取消操作應該如何正確觸發隊列？~~ **✅ 已解決**（#9）
+
+### 優先級低（改進空間）
+8. ~~summary 長文本是否需要和 correct / translate 一樣走 chunking 策略？~~ **✅ 已解決**（#1）
+9. ~~進度計算是否應該區分 done 和 skipped？~~ **✅ 已解決**（#7）
+10. ~~prompt 長度是否應該從 context window 扣除？~~ **✅ 已解決**（#11）

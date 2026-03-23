@@ -2,9 +2,12 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type {
+  AiPipelineStatsResponse,
   AiProgressEvent,
   AiRunPayload,
   AiRunResult,
+  AiSaveResultsPayload,
+  AiSaveResultsResponse,
   AiStopPayload,
   AiStopResponse,
   AiStatusResponse,
@@ -48,6 +51,10 @@ const api = {
   stopAi: (payload: AiStopPayload): Promise<AiStopResponse> => ipcRenderer.invoke(IPC_CHANNELS.AI_STOP, payload),
   getAiStatus: (): Promise<AiStatusResponse> => ipcRenderer.invoke(IPC_CHANNELS.AI_GET_STATUS),
   listAiModels: (): Promise<string[]> => ipcRenderer.invoke(IPC_CHANNELS.AI_LIST_MODELS),
+  saveAiResults: (payload: AiSaveResultsPayload): Promise<AiSaveResultsResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_SAVE_RESULTS, payload),
+  getAiPipelineStats: (): Promise<AiPipelineStatsResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AI_GET_PIPELINE_STATS),
   getSettings: (): Promise<WorkflowSettings> => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
   setSettings: (settings: Partial<WorkflowSettings>): Promise<WorkflowSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, settings),
